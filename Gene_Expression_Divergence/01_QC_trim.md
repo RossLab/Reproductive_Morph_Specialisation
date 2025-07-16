@@ -3,6 +3,7 @@ The quality of the reads were assessed before trimming with FastQC, trimmed with
 ```
 # Assess quality of reads with fastqc
 fastqc -t 4 *.fq.gz
+# -t 4 to use 4 threads
 
 # Trim reads with fastp 
 for file in $(ls /mnt/hel/ross/sequencing/raw/novogene_may_2023_gnats/X204SC23040157-Z01-F001_0*/01.RawData/B*/*_1.fq.gz)
