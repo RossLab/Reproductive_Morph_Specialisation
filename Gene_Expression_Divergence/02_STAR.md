@@ -37,4 +37,7 @@ done
 ```
 
 Average mapping rate was ~93%, average unique mapping rate was ~83%. Females (both androgenic and gynogenic) tended to have higher unique mapping rates than males in all tissues. 
+
 Looking only at androgenic females and males, comparing the % of unmapped reads when mapping to the genome with the X' scaffold, and mapping to the same genome with the X' scaffold excluded, provides an estimate of the mismapping rate. Since they do not have the X' chromosome, the difference in % of unmapped reads should be due to reads mismapping to the X' scaffold. The average difference in % of unmapped reads in the two mapping exercises is ~1.9% for males and ~1.2% for androgenic females, showing low mismapping rate. 
+
+Once reads have been mapped to the reference genome, the number of reads can be summarised to the gene level with featureCounts from the Subread package.
