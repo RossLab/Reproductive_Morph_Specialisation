@@ -1,4 +1,4 @@
-# Read summation with featureCounts #
+# Read summarisation with featureCounts #
 
 featureCounts from the subread package (v2.0.8) was used to summarise the mapped reads. 
 
@@ -16,4 +16,4 @@ do
 done
 ```
 
-The `--countReadPairs -M --fraction` tag allows multimapping reads to be count, with the count distributed evenly between all sites that the read maps to. This produces a file with read counts, summarised at the gene level for each gene. 
+The `--countReadPairs -M --fraction` tag allows multimapping reads to be count, with the count distributed evenly between all sites that the read maps to. This produces a txt file with read counts, summarised at the gene level for each gene. This txt file can then be taken into R for differential gene expression analysis.
