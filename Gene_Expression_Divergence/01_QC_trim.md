@@ -1,3 +1,5 @@
+# QC and Trim RNA-seq reads #
+
 The quality of the reads were assessed before trimming with FastQC, trimmed with Fastp, then QC'ed again. 
 
 ```
@@ -18,4 +20,4 @@ done
 fastqc -t 4 *.trimmed.fq.gz
 ```
 
-The FastQC reports looked normal, so I can proceed to the next stage.
+The FastQC reports looked normal, so I can proceed to the next stage, which is mapping the reads to the genome.
