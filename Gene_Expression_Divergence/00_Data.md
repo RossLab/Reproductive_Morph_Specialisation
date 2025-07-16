@@ -1,12 +1,10 @@
 ## Genome data ##
 
-The genome used in this paper was generated in [Baird, 2023](https://academic.oup.com/mbe/article/40/7/msad148/7206319).
+The genome used in this paper was generated in [Baird, 2023](https://academic.oup.com/mbe/article/40/7/msad148/7206319). It is generated from the Holo2 line of _Bradysia coprophila_, an inbred lab line that has been cultured since 1920s.
 
 ## Transcriptome data ##
 
-Data was collected for chapter X of Baird (2024). 
-
-Carried out in Holo2 line of _Bradysia coprophila_, which is an inbred lab line that has been cultured since 1920s. 
+Data was collected for chapter X of Baird (2024). It was collected from the same Holo2 line from which the reference genome was generated. 
 
 | Sample ID  | Sex | Tissue | Sample size |
 | --- | --- | --- | --- |
