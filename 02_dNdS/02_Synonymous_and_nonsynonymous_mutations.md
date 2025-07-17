@@ -76,3 +76,80 @@ samtools index ${base}.minimap2.rg.rmdup.sorted.bam
 bcftools mpileup -Ou -f ${GENOME} ${base}.minimap2.rg.rmdup.sorted.bam | bcftools call -mv -Oz -o ${base}.vcf.gz
 bcftools index ${base}.vcf.gz
 ```
+\
+Then, I can use snpEff to annotate the vcf with the type of mutation the SNP produces (missense, nonsense, etc), and filter only for variants_effect_missense_variant (nonsynonymous), variants_effect_stop_retained_variant and variants_effect_synonymous_variant (synonymous). Again, I do this separately for the autosome + X and autosome + Inversion vcf. 
+```
+# gffread v0.12.7
+# snpeff v5.2
+# snpsift v5.2 
+
+# Define file names
+GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
+ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3.augustus.gtf'
+VCF='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_Bodo_X.vcf.gz'
+
+# I have edited the config file of snpEff in my conda environment, which is ~/micromamba/envs/vcf/share/snpeff-5.2-1/snpEff.config to add Bradysia coprophila
+# Bradysia coprophila genome (v3)
+# Bradysia_coprophila.genome : Bradysia_coprophila
+
+# I have then created a data/ folder in the same directory. Within that I have created a Bradysia_coprophila directory and copied in both the ref genome and the gtf annotation
+
+gffread -x cds.fa -g ${GENOME} ${ANNO}
+mv cds.fa ~/micromamba/envs/vcf/share/snpeff-5.2-1/data/Bradysia_coprophila/
+
+gffread -y protein.fa -g ${GENOME} ${ANNO}
+mv protein.fa ~/micromamba/envs/vcf/share/snpeff-5.2-1/data/Bradysia_coprophila/
+
+# Build SnpEff database
+snpEff build -gtf22 -v Bradysia_coprophila
+
+# Annotate the vcf with snpEff
+snpEff Bradysia_coprophila \
+-v -no-downstream -no-intron -no-upstream -no-utr -no-intergenic \
+-stats Bcop.filterstats.html \
+-canon \
+${VCF} > Bcop_vs_Bodo_anno.vcf
+
+# Extract useful reasons with snpSift
+SnpSift extractFields Bcop_vs_Bodo_anno.vcf \
+CHROM ANN[0].GENEID POS REF ALT isHom"(GEN[0])" ANN[*].EFFECT \
+> Bcop.just_genes_snps.txt
+
+cat Bcop.filterstats.genes.txt | cut -f2,3,18,26,27 > Bcop_X.filterstats.genes.relevant.txt
+```
+
+```
+# Define file names
+GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
+ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3.augustus.gtf'
+VCF='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_Bodo_Inv.vcf.gz'
+
+# I have edited the config file of snpEff in my conda environment, which is ~/micromamba/envs/vcf/share/snpeff-5.2-1/snpEff.config to add Bradysia coprophila
+# Bradysia coprophila genome (v3)
+# Bradysia_coprophila.genome : Bradysia_coprophila
+
+# I have then created a data/ folder in the same directory. Within that I have created a Bradysia_coprophila directory and copied in both the ref genome and the gtf annotation
+
+gffread -x cds.fa -g ${GENOME} ${ANNO}
+mv cds.fa ~/micromamba/envs/vcf/share/snpeff-5.2-1/data/Bradysia_coprophila/
+
+gffread -y protein.fa -g ${GENOME} ${ANNO}
+mv protein.fa ~/micromamba/envs/vcf/share/snpeff-5.2-1/data/Bradysia_coprophila/
+
+# Build SnpEff database
+snpEff build -gtf22 -v Bradysia_coprophila
+
+# Annotate the vcf with snpEff
+snpEff Bradysia_coprophila \
+-v -no-downstream -no-intron -no-upstream -no-utr -no-intergenic \
+-stats Bcop.filterstats.html \
+-canon \
+${VCF} > Bcop_vs_Bodo_anno.vcf
+
+# Extract useful reasons with snpSift
+SnpSift extractFields Bcop_vs_Bodo_anno.vcf \
+CHROM ANN[0].GENEID POS REF ALT isHom"(GEN[0])" ANN[*].EFFECT \
+> Bcop.just_genes_snps.txt
+
+cat Bcop.filterstats.genes.txt | cut -f2,3,18,26,27 > Bcop_Inv.filterstats.genes.relevant.txt
+```
