@@ -127,14 +127,9 @@ all_tissue_pca <- biplot(pca_output, colby = "group", colkey = c(
   "Gynogenic - Somatic non-reproductive" = "#762a83",
   "Male - Germline" = "#9ecae1",
   "Male - Somatic reproductive" = "#4292c6",
-  "Male - Somatic non-reproductive" = "#084594"), legendPosition = "bottom", lab = NULL) + 
-  theme(legend.title = element_blank(), legend.text = element_text(size = 18)) +
-  guides(
-    colour = guide_legend(
-      nrow = 3, ncol = 3,
-      byrow = TRUE
-    )
-  )
+  "Male - Somatic non-reproductive" = "#084594"), legendPosition = "bottom", lab = NULL, title = "A", titleLabSize = 25) + 
+  theme(legend.title = element_blank(), legend.text = element_text(size = 18, margin = margin(t = 0, b = 0)), plot.title = element_text(hjust = -0.05, vjust = -1.5)) +
+  guides(colour = guide_legend(nrow = 3, ncol = 3, byrow = TRUE))
 all_tissue_pca
 dev.off()
 ```
@@ -172,7 +167,7 @@ plotMDS(DGEList_nonrepro)
 counts_for_pca<-cpm(DGEList_nonrepro,log=TRUE,prior.count=1) 
 pca_output <- pca(counts_for_pca, metadata = DGEList_nonrepro$samples)
 
-## PCA plot for paper ##
+## PCA plot ##
 png(file="./plots/somaticnonrepro_pca.png", height = 800, width = 800)
 non_repro_pca <- biplot(pca_output, colby = "group", legendPosition = "none", lab = NULL, colkey = c(
   "androgenic" = "#006d2c",
@@ -228,5 +223,229 @@ nonrepro_volcano <- ggplot(qlf.androvsgyno_nonrepro_FDR_df, aes(logFC, -log(FDR,
   geom_hline(yintercept = -log(0.05,10), colour = "gray") +
   # geom_vline(xintercept = c(1, -1), colour="gray") +
   ggtitle("F") + theme_bw() +
-  theme(plot.title = element_text(size = 20, hjust = -0.1, vjust = -1.5))
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+
+## A little duplicate of the above graph for summary plot purposes later on. 
+nonrepro_volcano_legend <- ggplot(qlf.androvsgyno_nonrepro_FDR_df, aes(logFC, -log(FDR,10))) +
+  geom_point(aes(color = Expression), size = 1) +
+  scale_color_manual(values = c("chartreuse3", "purple", "gray50")) +
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  geom_hline(yintercept = -log(0.05,10), colour = "gray") +
+  # geom_vline(xintercept = c(1, -1), colour="gray") +
+  ggtitle("F") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "bottom", legend.title = element_text(size = 18), legend.text = element_text(size = 18, margin = margin(t = 0, b = 0))
+  )
+```
+\
+I do the same with somatic reproductive tissue and germline tissue. 
+```
+#### SOMATIC REPRODUCTIVE TISSUE ####
+## Making a DGEList object ##
+design_repro <- design[c(4:6, 13:15, 22:24), ]
+counts_repro <- autosomal_counts[, c(4:6, 13:15, 22:24)]
+DGEList_repro <- DGEList(counts = counts_repro, group = design_repro$sex)
+head(DGEList_repro)
+nrow(DGEList_repro$counts) #16679
+
+# Constructing a model matrix for glm 
+design_repro_matrix <- model.matrix(~0 + design_repro$sex)
+rownames(design_repro_matrix) <- design_repro$sample_id
+colnames(design_repro_matrix) <- sort(unique(design_repro$sex))
+design_repro_matrix
+
+## Filter lowly expressed genes ##
+keep <- filterByExpr(DGEList_repro)
+table(keep) # Keep 10816 genes, get rid of 5863 genes 
+DGEList_repro <- DGEList_repro[keep, , keep.lib.sizes=FALSE]
+nrow(DGEList_repro$counts) #10816
+
+## Normalisation ##
+DGEList_repro <- normLibSizes(DGEList_repro)
+head(DGEList_repro)
+
+## Visualise sample distances ##
+plotMDS(DGEList_repro)
+counts_for_pca<-cpm(DGEList_repro,log=TRUE,prior.count=1) 
+pca_output <- pca(counts_for_pca, metadata = DGEList_repro$samples)
+
+repro_pca <- biplot(pca_output, colby = "group", legendPosition = "none", gridlines.major = FALSE, lab = NULL, colkey = c(
+  "androgenic" = "#41ab5d",
+  "gynogenic" = "#af8dc3",
+  "male" = "#4292c6"), title = "B", titleLabSize = 25) +
+  theme(
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = -1.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+screeplot(pca_output)
+
+# Estimate common dispersion and tagwise dispersion in one go 
+DGEList_repro <- estimateDisp(DGEList_repro, design = design_repro_matrix)
+# This is a plot of the NB dispersion for the dataset 
+plotBCV(DGEList_repro)
+
+# Given raw counts, NB dispersion(s) and a design matrix, glmQLFit() fits the negative binomial GLM for each tag and produces an object of class DGEGLM with some new components.
+fit_repro <- glmQLFit(DGEList_repro, design_repro_matrix)
+head(fit_repro$coefficients)
+# compares androgenics (as the baseline) to gynogenics 
+qlf.androvsgyno_repro <- glmQLFTest(fit_repro, contrast=c(-1, 1, 0))
+qlf.androvsgyno_repro_FDR <- topTags(qlf.androvsgyno_repro, 10816)
+qlf.androvsgyno_repro_FDR_sig <- qlf.androvsgyno_repro_FDR$table[qlf.androvsgyno_repro_FDR$table$FDR < 0.05,]
+summary(decideTests(qlf.androvsgyno_repro))
+write.csv(qlf.androvsgyno_repro_FDR_sig, "outputs/repro_androvsgyno_sig.csv")
+
+### Volcano plots (which requires differential gene analysis) ###
+# compares androgenics (as the baseline) to gynogenics 
+summary(decideTests(qlf.androvsgyno_repro))
+
+qlf.androvsgyno_repro_FDR_df <- as.data.frame(qlf.androvsgyno_repro_FDR)
+qlf.androvsgyno_repro_FDR_df <- qlf.androvsgyno_repro_FDR_df %>% 
+  mutate(
+    Expression = case_when(FDR < 0.05 & logFC <= 0 ~ "Androgenic-biased",
+                           FDR < 0.05 & logFC >= 0 ~ "Gynogenic-biased",
+                           TRUE ~ "Unchanged")
+  )
+table(qlf.androvsgyno_repro_FDR_df$Expression)
+
+repro_volcano <- ggplot(qlf.androvsgyno_repro_FDR_df, aes(logFC, -log(FDR,10))) +
+  geom_point(aes(color = Expression), size = 1) +
+  scale_color_manual(values = c("gray50")) +
+  guides(colour = guide_legend(override.aes = list(size=1.5))) +
+  geom_hline(yintercept = -log(0.05,10), colour = "gray") +
+  # geom_vline(xintercept = c(1, -1), colour="gray") +
+  ggtitle("E") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+
+
+#### GERMLINE TISSUE ####
+## Making a DGEList object ##
+design_germline <- design[c(1:3, 10:12, 19:21), ]
+counts_germline <- autosomal_counts[, c(1:3, 10:12, 19:21)]
+DGEList_germline <- DGEList(counts = counts_germline, group = design_germline$sex)
+head(DGEList_germline)
+nrow(DGEList_germline$counts) #16679
+
+# Constructing a model matrix for glm 
+design_germline_matrix <- model.matrix(~0 + design_germline$sex)
+rownames(design_germline_matrix) <- design_germline$sample_id
+colnames(design_germline_matrix) <- sort(unique(design_germline$sex))
+design_germline_matrix
+
+## Filter lowly expressed genes ##
+keep <- filterByExpr(DGEList_germline)
+table(keep) # Keep 10492 genes, get rid of 6187 genes 
+DGEList_germline <- DGEList_germline[keep, , keep.lib.sizes=FALSE]
+nrow(DGEList_germline$counts) #10492
+
+## Normalisation ##
+DGEList_germline <- normLibSizes(DGEList_germline)
+head(DGEList_germline)
+
+## Visualise sample distances ##
+plotMDS(DGEList_germline)
+counts_for_pca<-cpm(DGEList_germline,log=TRUE,prior.count=1) 
+pca_output <- pca(counts_for_pca, metadata = DGEList_germline$samples)
+
+germline_pca <- biplot(pca_output, colby = "group", legendPosition = "none", gridlines.major = FALSE, lab = NULL, colkey = c(
+  "androgenic" = "#a1d99b",
+  "gynogenic" = "#d4b9da",
+  "male" = "#9ecae1"), title = "A", titleLabSize = 25) + 
+  theme(
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = -1.5),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+screeplot(pca_output)
+
+# Estimate common dispersion and tagwise dispersion in one go 
+DGEList_germline <- estimateDisp(DGEList_germline, design = design_germline_matrix)
+# This is a plot of the NB dispersion for the dataset 
+plotBCV(DGEList_germline)
+
+# Given raw counts, NB dispersion(s) and a design matrix, glmQLFit() fits the negative binomial GLM for each tag and produces an object of class DGEGLM with some new components.
+fit_germline <- glmQLFit(DGEList_germline, design_germline_matrix)
+head(fit_germline$coefficients)
+# compares androgenics (as the baseline) to gynogenics 
+qlf.androvsgyno_germline <- glmQLFTest(fit_germline, contrast=c(-1, 1, 0))
+qlf.androvsgyno_germline_FDR <- topTags(qlf.androvsgyno_germline, 11656)
+qlf.androvsgyno_germline_FDR_sig <- qlf.androvsgyno_germline_FDR$table[qlf.androvsgyno_germline_FDR$table$FDR < 0.05,]
+summary(decideTests(qlf.androvsgyno_germline)) # 11 upregulated
+write.csv(qlf.androvsgyno_germline_FDR_sig, "outputs/germline_androvsgyno_sig.csv")
+
+## Plotting heatmaps etc 
+logcpm_germline <- cpm(DGEList_germline, log=TRUE)
+logcpm_germline
+logcpm_germline_females <- logcpm_germline[, 4:9]
+heatmap_all_germline_50 <- pheatmap(logcpm_germline_females[rownames(head(qlf.androvsgyno_germline_FDR_sig, 50)), ],
+                                    cluster_rows = F, cluster_cols = F, show_rownames = F, show_colnames = T,
+                                    main = "Top 50 significant DEGs between female morphs in germline tissue")
+
+### Volcano plots (which requires differential gene analysis) ###
+# compares androgenics (as the baseline) to gynogenics 
+summary(decideTests(qlf.androvsgyno_germline))
+
+qlf.androvsgyno_germline_FDR_df <- as.data.frame(qlf.androvsgyno_germline_FDR)
+qlf.androvsgyno_germline_FDR_df <- qlf.androvsgyno_germline_FDR_df %>% 
+  mutate(
+    Expression = case_when(FDR < 0.05 & logFC <= 0 ~ "Androgenic-biased",
+                           FDR < 0.05 & logFC >= 0 ~ "Gynogenic-biased",
+                           TRUE ~ "Unchanged")
+  )
+table(qlf.androvsgyno_germline_FDR_df$Expression)
+
+germline_volcano <- ggplot(qlf.androvsgyno_germline_FDR_df, aes(logFC, -log(FDR,10))) +
+  geom_point(aes(color = Expression), size = 1) +
+  scale_color_manual(values = c("purple",  "gray50")) +
+  guides(colour = guide_legend(override.aes = list(size=1.5))) +
+  geom_hline(yintercept = -log(0.05,10), colour = "gray") +
+  # geom_vline(xintercept = c(1, -1), colour="gray") +
+  ggtitle("D") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none"
+  )
+```
+\
+Now I have PCA and volcano plots for each tissue, I put them all together for a figure. 
+```
+pca_legend <- ggpubr::get_legend(all_tissue_pca) 
+pca_legend_gg <- as_ggplot(pca_legend) + theme(plot.margin = margin(t = -30, r = 0, b = 0, l = 0))
+vol_legend <- ggpubr::get_legend(nonrepro_volcano_legend)
+png(file="./plots/gene_exp_div.png", height = 900, width = 1000)
+ggarrange(ggarrange(germline_pca,repro_pca, non_repro_pca, ncol = 3, legend = NULL), pca_legend_gg, ggarrange(germline_volcano, repro_volcano, nonrepro_volcano, legend = "none", ncol = 3), vol_legend, nrow = 4, heights = c(1, 0.2, 0.9, 0.1))
+dev.off()
 ```
