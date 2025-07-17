@@ -153,3 +153,25 @@ CHROM ANN[0].GENEID POS REF ALT isHom"(GEN[0])" ANN[*].EFFECT \
 
 cat Bcop.filterstats.genes.txt | cut -f2,3,18,26,27 > Bcop_Inv.filterstats.genes.relevant.txt
 ```
+\
+Now I have the number of synonymous and nonsynonymous mutations for each gene on the autosomes, X chromosome and the inversion. To allow a comparison between the two, I run Orthofinder to find 1-1 homologs between the X chromosome and the inversion. 
+```
+# Define file names
+GFF="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_fixed.gff3"
+GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
+
+awk '$1 == "X" && $3 == "mRNA"' ${GFF} > Bcop_X.gff
+awk '$1 == "Inversion" && $3 == "mRNA"' ${GFF} > Bcop_Inv.gff
+
+gffread -w Bcop_X_genes.fasta -g ${GENOME} Bcop_X.gff
+gffread -w Bcop_Inv_genes.fasta -g ${GENOME} Bcop_Inv.gff
+
+mkdir genes/
+
+OUT='X_vs_Inv'
+mv Bcop_X_genes.fasta genes/
+mv Bcop_Inv_genes.fasta genes/
+orthofinder -o $OUT -n $OUT -t 12 -d -f genes/
+mv $OUT/Results_$OUT/Orthogroups/Orthogroups.tsv ${OUT}_Orthogroups.tsv
+mv $OUT/Results_$OUT/Orthogroups/Orthogroups_SingleCopyOrthologues.txt ${OUT}_Orthogroups_SCOs.tsv
+```
