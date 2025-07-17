@@ -1,5 +1,5 @@
 # Annotating synonymous and nonsynonymous sites per gene #
-This follows section 4.2. of [04_divergence.md](https://github.com/RossLab/PGE_slowerX/blob/main/04_divergence.md), to calculate the total number of generate vs degenerate sites in each gene. 
+This follows section 4.2. of [04_divergence.md](https://github.com/RossLab/PGE_slowerX/blob/main/04_divergence.md), to calculate the total number of synonymous and nonsynonymous sites in each gene. 
 \
 \
 I am using `partitioncds.py` from [this github](https://github.com/A-J-F-Mackintosh/Mackintosh_et_al_2022_Ipod/tree/main). This script requires a reference genome, an annotation bed file, and a vcf. To generate a vcf, I align an Illumina library from a gynogenic female (with the inversion) to the reference genome (with the inversion) and call variants.
