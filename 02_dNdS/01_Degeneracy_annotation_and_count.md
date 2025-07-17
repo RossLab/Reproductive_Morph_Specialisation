@@ -122,3 +122,4 @@ nrow(all_degen_counts)
 # write table
 write.table(all_degen_counts, file='degen_site_counts.tsv', row.names=F, col.names=T, quote=F, sep='\t')
 ```
+Now that I have the number of synonymous and nonsynonymous sites in each gene, I can move on to finding synonymous vs nonsynonymous mutations. 
