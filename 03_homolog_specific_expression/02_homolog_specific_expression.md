@@ -234,3 +234,245 @@ exp_dNdS_plot_nonrepro <- ggplot(data= exp_dNdS_summary, aes(x = X_dNdS, y = Inv
   theme_minimal() +
   theme(plot.title = element_text(hjust=0.5))
 ```
+\
+Repeating this with somatic non-reproductive and germline tissue.
+```
+#### Somatic reproductive tissue ####
+design
+gene_count_somatic_repro <- X_Inv_SCO_genes_count[, c(1:3, 7:9, 16:18)]
+nrow(gene_count_somatic_repro) # 2152, same number as single orthologs between X and Inv
+
+gene_count_somatic_repro_long <- gene_count_somatic_repro %>%
+  pivot_longer(
+    cols = starts_with("B"),
+    names_to = "Sample_Group",
+    values_to = "Expression"
+  ) %>%
+  mutate(
+    Sample = str_extract(Sample_Group, "B\\d+"),
+    Chrom = ifelse(str_detect(Sample_Group, "_X$"), "X", "Inv")
+  ) %>%
+  select(Number, Sample, Chrom, Expression, Inv_transcript, X_transcript)
+
+gene_count_somatic_repro_long$Number <- as.factor(gene_count_somatic_repro_long$Number)
+gene_count_somatic_repro_long$logTPM <- log1p(gene_count_somatic_repro_long$Expression)
+
+model <- lmer(logTPM ~ -1 + Chrom:Number + (1 | Sample), data = gene_count_somatic_repro_long)
+model_summary <- summary(model)
+# This estimates the average expression for each homolog on different genes. Significance in this case means that they are significantly different from 0 
+
+# Now I am extracting the estimated mean for each homolog on each chromosome, to do pairwise comparisons
+emm <- emmeans(model, ~ Chrom:Number)
+contrast <- contrast(emm, method = "pairwise", by = "Number") |> summary(infer = TRUE, adjust = "BH")
+
+contrast_summary <- contrast |> 
+  as.data.frame() |> 
+  filter(str_detect(contrast, "Inv - X")) |> 
+  mutate(Number = str_extract(as.character(Number), "\\d+"),
+         logFC = estimate,
+         pval = p.value,
+         sig = case_when(
+           pval < 0.001 ~ "***",
+           pval < 0.01  ~ "**",
+           pval < 0.05  ~ "*",
+           TRUE         ~ "ns")) |> 
+  select(Number, logFC, pval, sig)
+
+X_Inv_SCO_genes_count_summary <- X_Inv_SCO_genes_count[, c(1:3)]
+
+allele_specific_summary <- merge(X_Inv_SCO_genes_count_summary, contrast_summary, by = "Number")
+allele_specific_summary[order(allele_specific_summary$logFC, decreasing = T),]
+
+# write.csv(allele_specific_summary, "output/allele_specific_exp_summary_repro.csv", row.names = FALSE)
+
+
+
+# dNdS_readin <- read.csv("C:/Users/s2556496/Desktop/All/Morph_Specialisation_Gene_Expression/B_coprophila_morph_gene_divergence_FINAL/04_dnds/output/X_Inv_ortholog_dNdS.csv")
+allele_specific_summary <- read.csv("output/allele_specific_exp_summary_repro.csv")
+
+nrow(allele_specific_summary) # 2152
+nrow(allele_specific_summary[allele_specific_summary$pval < 0.05, ]) # 765
+
+allele_specific_summary_sig <- allele_specific_summary |>
+  mutate(
+    bias = case_when(
+      logFC > 0 & pval <= 0.05 ~ "Inv_biased",
+      logFC < 0 & pval <= 0.05 ~ "X_biased",
+      TRUE ~ "Unbiased"
+    )
+  )
+
+table(allele_specific_summary_sig$bias)
+
+#### MA plot 
+mean_expr <- gene_count_somatic_repro_long %>%
+  group_by(Number, Chrom) %>%
+  summarise(mean_TPM = mean(Expression), .groups = "drop") %>%
+  pivot_wider(names_from = Chrom, values_from = mean_TPM)
+
+allele_specific_summary_MA <- allele_specific_summary_sig %>%
+  left_join(mean_expr, by = "Number") %>%
+  mutate(
+    A = log2((Inv + X) / 2 + 1),  # average expression, +1 to avoid log(0)
+    M = logFC                     # same as log2(Inv) - log2(X)
+  )
+MAplot_ASE_repro<-ggplot(allele_specific_summary_MA, aes(x = A, y = M, color = bias)) +
+  geom_point(size = 1) +
+  scale_color_manual(values = c("purple", "gray50", "chartreuse3")) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    x = "Average expression (log2 TPM)",
+    y = "Allele-specific expression (log2 Inv - X)",
+    title = "MA Plot of Allele-Specific Expression in Somatic Reproductive Tissue"
+  ) +
+  theme_bw()
+
+
+exp_dNdS_summary <- merge(allele_specific_summary_sig, dNdS_readin, by = "X_transcript")
+exp_dNdS_summary <- exp_dNdS_summary |>
+  select(X_transcript, Inv_transcript.x, logFC, pval, bias, Inv_dNdS, X_dNdS, dNdS_diff)
+
+## There are two annoying out of bound points
+# Define plot limits
+xlim_vals <- c(0, 1.25)
+ylim_vals <- c(0, 1.25)
+# Subset the points that are out of bounds
+out_of_bounds <- exp_dNdS_summary |>
+  filter(X_dNdS > xlim_vals[2] | Inv_dNdS > ylim_vals[2])
+
+exp_dNdS_plot_repro <- ggplot(data= exp_dNdS_summary, aes(x = X_dNdS, y = Inv_dNdS, col = bias)) +
+  geom_point(alpha = 0.7) +
+  geom_point(data = out_of_bounds,
+             aes(
+               x = pmin(X_dNdS, xlim_vals[2]) + runif(nrow(out_of_bounds), -0.05, 0.05),
+               y = pmin(Inv_dNdS, ylim_vals[2])
+             ),
+             shape = 2,  # triangle
+             size = 2,
+             inherit.aes = TRUE) +  # inherit color = bias
+  coord_cartesian(xlim=xlim_vals, ylim=ylim_vals) +
+  geom_abline(intercept = 0, slope = 1, col = "grey") +
+  scale_color_manual("Expression",values=c("purple","grey", "chartreuse2")) +
+  ggtitle("dNdS value for homologs on X vs Inv, coloured by expression bias in Reproductive Tissue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust=0.5))
+
+
+#### Germline tissue ####
+design
+gene_count_germline <- X_Inv_SCO_genes_count[, c(1:3, 4:6, 13:15)]
+nrow(gene_count_germline) # 2152, same number as single orthologs between X and Inv
+
+gene_count_germline_long <- gene_count_germline %>%
+  pivot_longer(
+    cols = starts_with("B"),
+    names_to = "Sample_Group",
+    values_to = "Expression"
+  ) %>%
+  mutate(
+    Sample = str_extract(Sample_Group, "B\\d+"),
+    Chrom = ifelse(str_detect(Sample_Group, "_X$"), "X", "Inv")
+  ) %>%
+  select(Number, Sample, Chrom, Expression, Inv_transcript, X_transcript)
+
+gene_count_germline_long$Number <- as.factor(gene_count_germline_long$Number)
+gene_count_germline_long$logTPM <- log1p(gene_count_germline_long$Expression)
+
+model <- lmer(logTPM ~ -1 + Chrom:Number + (1 | Sample), data = gene_count_germline_long)
+model_summary <- summary(model)
+# This estimates the average expression for each homolog on different genes. Significance in this case means that they are significantly different from 0 
+
+# Now I am extracting the estimated mean for each homolog on each chromosome, to do pairwise comparisons
+emm <- emmeans(model, ~ Chrom:Number)
+contrast <- contrast(emm, method = "pairwise", by = "Number") |> summary(infer = TRUE, adjust = "BH")
+
+contrast_summary <- contrast |> 
+  as.data.frame() |> 
+  filter(str_detect(contrast, "Inv - X")) |> 
+  mutate(Number = str_extract(as.character(Number), "\\d+"),
+         logFC = estimate,
+         pval = p.value,
+         sig = case_when(
+           pval < 0.001 ~ "***",
+           pval < 0.01  ~ "**",
+           pval < 0.05  ~ "*",
+           TRUE         ~ "ns")) |> 
+  select(Number, logFC, pval, sig)
+
+X_Inv_SCO_genes_count_summary <- X_Inv_SCO_genes_count[, c(1:3)]
+
+allele_specific_summary <- merge(X_Inv_SCO_genes_count_summary, contrast_summary, by = "Number")
+allele_specific_summary[order(allele_specific_summary$logFC, decreasing = T),]
+
+write.csv(allele_specific_summary, "output/allele_specific_exp_summary_germline.csv", row.names = FALSE)
+
+dNdS_readin <- read.csv("C:/Users/s2556496/Desktop/All/Morph_Specialisation_Gene_Expression/B_coprophila_morph_gene_divergence_FINAL/04_dnds/output/X_Inv_ortholog_dNdS.csv")
+
+allele_specific_summary <- read.csv("output/allele_specific_exp_summary_germline.csv")
+
+nrow(allele_specific_summary) # 2152
+nrow(allele_specific_summary[allele_specific_summary$pval < 0.05, ]) # 1078
+
+allele_specific_summary_sig <- allele_specific_summary |>
+  mutate(
+    bias = case_when(
+      logFC > 0 & pval <= 0.05 ~ "Inv_biased",
+      logFC < 0 & pval <= 0.05 ~ "X_biased",
+      TRUE ~ "Unbiased"
+    )
+  )
+
+table(allele_specific_summary_sig$bias)
+
+mean_expr <- gene_count_germline_long %>%
+  group_by(Number, Chrom) %>%
+  summarise(mean_TPM = mean(Expression), .groups = "drop") %>%
+  pivot_wider(names_from = Chrom, values_from = mean_TPM)
+
+allele_specific_summary_MA <- allele_specific_summary_sig %>%
+  left_join(mean_expr, by = "Number") %>%
+  mutate(
+    A = log2((Inv + X) / 2 + 1),  # average expression, +1 to avoid log(0)
+    M = logFC                     # same as log2(Inv) - log2(X)
+  )
+
+MAplot_ASE_germline<-ggplot(allele_specific_summary_MA, aes(x = A, y = M, color = bias)) +
+  geom_point(size = 1) +
+  scale_color_manual(values = c("purple", "gray50", "chartreuse3")) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    x = "Average expression (log2 TPM)",
+    y = "Allele-specific expression (log2 Inv - X)",
+    title = "MA Plot of Allele-Specific Expression in Germline Tissue"
+  ) +
+  theme_bw()
+
+exp_dNdS_summary <- merge(allele_specific_summary_sig, dNdS_readin, by = "X_transcript")
+exp_dNdS_summary <- exp_dNdS_summary |>
+  select(X_transcript, Inv_transcript.x, logFC, pval, bias, Inv_dNdS, X_dNdS, dNdS_diff)
+
+## There are two annoying out of bound points
+# Define plot limits
+xlim_vals <- c(0, 1.25)
+ylim_vals <- c(0, 1.25)
+# Subset the points that are out of bounds
+out_of_bounds <- exp_dNdS_summary |>
+  filter(X_dNdS > xlim_vals[2] | Inv_dNdS > ylim_vals[2])
+
+exp_dNdS_plot_germline <- ggplot(data= exp_dNdS_summary, aes(x = X_dNdS, y = Inv_dNdS, col = bias)) +
+  geom_point(alpha = 0.7) +
+  geom_point(data = out_of_bounds,
+             aes(
+               x = pmin(X_dNdS, xlim_vals[2]) + runif(nrow(out_of_bounds), -0.05, 0.05),
+               y = pmin(Inv_dNdS, ylim_vals[2])
+             ),
+             shape = 2,  # triangle
+             size = 2,
+             inherit.aes = TRUE) +  # inherit color = bias
+  coord_cartesian(xlim=xlim_vals, ylim=ylim_vals) +
+  geom_abline(intercept = 0, slope = 1, col = "grey") +
+  scale_color_manual("Expression",values=c("purple","grey", "chartreuse2")) +
+  ggtitle("dNdS value for homologs on X vs Inv, coloured by expression bias in Germline") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust=0.5))
+```
