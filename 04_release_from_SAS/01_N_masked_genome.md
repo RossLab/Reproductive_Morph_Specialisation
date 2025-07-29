@@ -37,21 +37,25 @@ samtools sort -@ 32 -o H2_XpX_pool.sorted.bam H2_XpX_pool.bam
 ```
 I prefer to call variants with bcftools. I first mark duplicates with samtools to reduce the chance of false positives
 ```
+# Define file names
+BAM="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool.sorted.bam"
 GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
 
-samtools markdup -r H2_XpX_pool.sorted.bam H2_XpX_pool.rmdup.bam
+# Add read pair information (necessary for markdup) and mark duplicates
+samtools sort -n -@ 16 -o H2_XpX_pool.ns.bam ${BAM}
+samtools fixmate -@ 16 H2_XpX_pool.ns.bam H2_XpX_pool.fixmate.bam
+samtools sort -@ 16 -o H2_XpX_pool.fixmate.sorted.bam H2_XpX_pool.fixmate.bam
+samtools markdup -r -@ 16 H2_XpX_pool.fixmate.sorted.bam H2_XpX_pool.rmdup.bam
 samtools index H2_XpX_pool.rmdup.bam
 
+# Call variants
 bcftools mpileup --threads 16 -Ou -f $GENOME H2_XpX_pool.rmdup.bam | \
 bcftools call --threads 16 -m -A -Oz -o H2_XpX_pool.vcf.gz
 
 bcftools index H2_XpX_pool.vcf.gz
 
-# Filter for variants with high quality 
-bcftools filter --threads 16 \
--e 'TYPE!="snp" || QD<=2.0 || FS>=60.0 || MQ<=40.0' \
--Oz -o H2_XpX_pool_filtered_snps.vcf.gz \
-  H2_XpX_pool.vcf.gz
+# Filter for variants with high quality
+bcftools filter --threads 16 -i 'QUAL>=30 && DP>=10 && MQ>=40 && TYPE="snp"' H2_XpX_pool.vcf.gz -Oz -o H2_XpX_pool_filtered_snps.vcf.gz
 
 bcftools index H2_XpX_pool_filtered_snps.vcf.gz
 ```
