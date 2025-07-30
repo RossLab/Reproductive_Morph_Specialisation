@@ -35,17 +35,32 @@ bwa mem -t 32 $GENOME ${READ_1} ${READ_2} | \
 samtools view -b - > H2_XpX_pool.bam && \
 samtools sort -@ 32 -o H2_XpX_pool.sorted.bam H2_XpX_pool.bam
 ```
-I prefer to call variants with bcftools. I first mark duplicates with samtools to reduce the chance of false positives
+I prefer to call variants with bcftools. I first mark duplicates with samtools to reduce the chance of false positives.
 ```
 # Define file names
 BAM="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool.sorted.bam"
 GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
 
-# Add read pair information (necessary for markdup) and mark duplicates
-samtools sort -n -@ 16 -o H2_XpX_pool.ns.bam ${BAM}
-samtools fixmate -@ 16 H2_XpX_pool.ns.bam H2_XpX_pool.fixmate.bam
-samtools sort -@ 16 -o H2_XpX_pool.fixmate.sorted.bam H2_XpX_pool.fixmate.bam
-samtools markdup -r -@ 16 H2_XpX_pool.fixmate.sorted.bam H2_XpX_pool.rmdup.bam
+samtools index ${BAM}
+
+# Use Picard to mark/remove duplicates
+picard AddOrReplaceReadGroups \
+    I=${BAM} \
+    O=H2_XpX_pool.rg.bam \
+    RGID=1 \
+    RGLB=lib1 \
+    RGPL=illumina \
+    RGPU=unit1 \
+    RGSM=sample1 \
+    VALIDATION_STRINGENCY=SILENT
+
+picard MarkDuplicates \
+    I=H2_XpX_pool.rg.bam \
+    O=H2_XpX_pool.rmdup.bam \
+    M=H2_XpX_pool.dup_metrics.txt \
+    REMOVE_DUPLICATES=false \
+    VALIDATION_STRINGENCY=SILENT
+
 samtools index H2_XpX_pool.rmdup.bam
 
 # Call variants
