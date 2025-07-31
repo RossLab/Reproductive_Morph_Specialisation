@@ -1,0 +1,7 @@
+
+I could see two ways of doing this analysis: 
+1. I can use the same reference genome I've used so far, subsetted for the autosomes and X, and then N-mask the sites on the X chromosomes where there are substitutions on the X'. I can then map reads from all libraries (androgenic female, gynogenic female, male) to this N-masked genome, and compare count values for each gene directly.
+2. I can use the full reference genome, including the X' inversion scaffold. Again I will map reads from all libraries to this full genome, and then for gynogenic females add up the counts for the X and X' homologs.
+\
+\
+I ultimately went with the first method. The cons of the first method is assuming that X' genes are not so diverged that they will not map to the X chromosome, which means I will not be able to call variants and N-mask sites on those genes. This might mean that I underestimate gynogenic expression for some of those most diverged genes. On the other hand, genes that are that highly diverged are probably pseudogenised or degenerated. The cons of the second method is that if I don't allow multimapping, lots of reads will multimap between the X and X', and thus be discarded (although this should happen equally for all sexes I guess). I will also have to figure out what to do for the genes that don't have clear single copy orthologs between the X and X'. I feel like the second method introduces more methods of ambiguity and difficulties with downstream analysis, so I'm going with the first method. 
