@@ -74,3 +74,12 @@ bcftools filter --threads 16 -i 'QUAL>=30 && DP>=10 && MQ>=40 && TYPE="snp"' H2_
 
 bcftools index H2_XpX_pool_filtered_snps.vcf.gz
 ```
+Finally, N-mask variant sites on the X chromosome.
+```
+VCF="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool_filtered_snps.vcf.gz"
+GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
+
+zgrep -e ^# -e "0[/|]1" ${VCF} | grep "X" | gzip > H2_XpX_pool_filtered_snps_het.vcf.gz
+
+bedtools maskfasta -fi ${GENOME} -bed H2_XpX_pool_filtered_snps_het.vcf.gz -fo Bcop_v3-chromosomes_X_Nmasked.fasta
+```
