@@ -35,7 +35,7 @@ bwa mem -t 32 $GENOME ${READ_1} ${READ_2} | \
 samtools view -b - > H2_XpX_pool.bam && \
 samtools sort -@ 32 -o H2_XpX_pool.sorted.bam H2_XpX_pool.bam
 ```
-I prefer to call variants with bcftools. I first mark duplicates with samtools to reduce the chance of false positives.
+I prefer to call variants with bcftools. I first mark duplicates with picard to reduce the chance of false positives.
 ```
 # Define file names
 BAM="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool.sorted.bam"
