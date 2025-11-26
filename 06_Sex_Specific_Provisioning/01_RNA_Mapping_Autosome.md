@@ -1,3 +1,4 @@
+# Map embryo RNA-seq libraries to ref genome, and summarise read counts #
 To assess whether gynogenic and androgenic females deposit different RNA into their eggs as a method of sex-specific provisioning, I carried out the same analysis as in 01_Gene_Expression_Divergence and 03_Homolog_specific_expression. 
 \
 \
