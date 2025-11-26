@@ -1,11 +1,13 @@
+# Compare read counts for gynogenic/androgenic females vs males #
 Now that I have counts for reads of each sex (gynogenic/androgenic female, male) mapped to the N-masked genome. I move to R to look at any differences in the degree of correlation between androgenic female vs male expression, and gynogenic female vs male expression. I first filter away lowly expressed genes and also use edgeR to transform the counts into logCPM values. I do this separately for each tissue.
-```
-setwd("C:/Users/s2556496/Desktop/All/Morph_Specialisation_Gene_Expression/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/")
 
+Required packages:
+```
 library(edgeR) # v4.0.9
 library(ggplot2) # v3.5.1
 library(tidyr) # v1.3.1
-
+```
+```
 ## Design matrix ##
 design <- read.csv("inputs/gene_expression_divergence_gyno_andro_male_design.csv")
 design$path_nmask <- paste0("inputs/N-mask/", design$sample_id, "_nmask.txt",sep="")
