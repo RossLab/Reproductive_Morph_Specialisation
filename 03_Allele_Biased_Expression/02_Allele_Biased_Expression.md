@@ -1,3 +1,4 @@
+# Allele-Biased Expression Analysis in R #
 The big difference between conventional allele-specific expression and my analysis, is that I cannot assume the gametologs on the X and X' are the same length (whether due to degeneration or incomplete assembly on the X'). Therefore I have to length-normalise before being able to carry out any expression comparisons between the gametologs. 
 
 This is done in R (v4.3.2).
