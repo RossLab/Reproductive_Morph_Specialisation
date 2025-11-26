@@ -1,3 +1,4 @@
+# Annotating synonymous and nonsynonymous variants per gene #
 I need to find the number of synonymous and non-synonymous mutations that have accumulated in the X vs the Inversion. To do that I align the _Bradysia coprophila_ genome to the closest relative for which we have a genome, _B. odoriphaga_. _B. odoriphaga_ does not have a X' inversion. Importantly, I have to do this separately for two versions of the _B. coprophila_ genome: one with the autosomes (II, III, IV) plus the X chromosome, one with the autosomes plus the inversion (X'). The final dN/dS value for the autosomal genes should be the same for these two versions of the genome, but for the X and Inversion homologs they may be different. 
 \
 \
