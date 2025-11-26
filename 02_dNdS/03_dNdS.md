@@ -1,10 +1,13 @@
+# Calculate dNdS per gene #
 The last step is to combine the measures of the number of synonymous sites and nonsynonymous sites for each gene, with the number of synonymous and nonsynoymous mutations for each gene. I have done this in R (v4.3.2).
 
+Necessary packages:
 ```
 library(ggplot2) # v 3.5.1
 library(tidyr) # v 1.3.1
 library(dplyr) # v 1.1.4
-
+```
+```
 ### Input files ###
 # Synonymous and nonsynonymous sites (degen_site_counts.tsv), and also synonymous and nonsynonymous mutations (Bcop.filterstats.genes.relevant.txt)
 # also:
