@@ -83,9 +83,7 @@ print(all_DGEList$samples) # Check that library sizes have changed
 plotMDS(all_DGEList)
 ```
 \
-Plot and save the PCA plot.
-
-
+Plot the PCA plot to visualise sample relationship.
 ```
 ####################### PCA plots ###########################
 counts_for_pca<-cpm(all_DGEList,log=TRUE,prior.count=1) 
@@ -117,7 +115,6 @@ labels = c(
 pca_output <- pca(counts_for_pca, metadata = all_DGEList$samples)
 screeplot(pca_output) # Use a screeplot to check the amount of variation that can be explained by each PC
 
-png(file="./plots/allsexalltissue_pca.png", height = 800, width = 1000)
 all_tissue_pca <- biplot(pca_output, colby = "group", colkey = c(
   "Androgenic - Germline" = "#a1d99b",
   "Androgenic - Somatic reproductive" = "#41ab5d",
@@ -131,11 +128,9 @@ all_tissue_pca <- biplot(pca_output, colby = "group", colkey = c(
   theme(legend.title = element_blank(), legend.text = element_text(size = 18, margin = margin(t = 0, b = 0)), plot.title = element_text(hjust = -0.05, vjust = -1.5)) +
   guides(colour = guide_legend(nrow = 3, ncol = 3, byrow = TRUE))
 all_tissue_pca
-dev.off()
 ```
 \
 Having checked that the samples are behaving as they should, I move on to analysing differential gene expression between androgenic and gynogenic females at each tissue level. The first step is to repeat the setup, but only with samples from one tissue. I am first analysing the somatic non-reproductive tissue. 
-
 
 ```
 ##### SOMATIC NON-REPRODUCTIVE TISSUE #####
@@ -169,14 +164,28 @@ pca_output <- pca(counts_for_pca, metadata = DGEList_nonrepro$samples)
 
 ## PCA plot ##
 png(file="./plots/somaticnonrepro_pca.png", height = 800, width = 800)
-non_repro_pca <- biplot(pca_output, colby = "group", legendPosition = "none", lab = NULL, colkey = c(
-  "androgenic" = "#006d2c",
-  "gynogenic" = "#762a83",
-  "male" = "#084594"), title = "C", titleLabSize = 25) + 
-  theme(legend.title = element_blank(), plot.title = element_text(hjust = -0.1, vjust = -1.5))
+non_repro_pca <- biplot(pca_output, colby = "group", legendPosition = "none", gridlines.major = FALSE, lab = NULL, 
+                        title = "C - Somatic non-reproductive", titleLabSize = 20)  +
+  scale_colour_manual(values = c(
+      "androgenic" = "chartreuse3",
+      "gynogenic" = "purple",
+      "male" = "blue2"), labels = c(
+      "androgenic" = "Androgenic female",
+      "gynogenic" = "Gynogenic female",
+      "male" = "Male")) +
+  guides(colour = guide_legend(override.aes = list(size=4))) +
+  theme(plot.title.position = "plot",
+    plot.title = element_text(size = 22, hjust = 0, vjust = -4),
+    axis.title = element_text(size = 18),
+    axis.text = element_text(size = 14),
+    legend.position = "none",
+    legend.title = element_text(size = 18), legend.text = element_text(size = 18, margin = margin(t = 0, b = 0))
+  ) 
 dev.off()
 screeplot(pca_output)
 ```
+I also repeated the plotting code but with `legend.position = "bottom"` to save the legend separately for the final ggarrange plot.
+\
 \
 Common dispersion and tagwise dispersion is estimated, then analysed for differentially expressed genes (DEGs) by a glm QLFT test. 
 
@@ -217,44 +226,25 @@ qlf.androvsgyno_nonrepro_FDR_df <- qlf.androvsgyno_nonrepro_FDR_df %>%
 table(qlf.androvsgyno_nonrepro_FDR_df$Expression) # Should match summary(decideTests(qlf.androvsgyno_nonrepro))
 
 nonrepro_volcano <- ggplot(qlf.androvsgyno_nonrepro_FDR_df, aes(logFC, -log(FDR,10))) +
-  geom_point(aes(color = Expression), size = 1) +
-  scale_color_manual(values = c("chartreuse3", "purple", "gray50")) +
-  guides(colour = guide_legend(override.aes = list(size=1.5))) +
-  geom_hline(yintercept = -log(0.05,10), colour = "gray") +
-  # geom_vline(xintercept = c(1, -1), colour="gray") +
-  ggtitle("F") + theme_bw() +
-  theme(
-    axis.line = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
-    axis.ticks = element_line(linewidth = 1.2),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "none"
-  )
-
-## A little duplicate of the above graph for summary plot purposes later on. 
-nonrepro_volcano_legend <- ggplot(qlf.androvsgyno_nonrepro_FDR_df, aes(logFC, -log(FDR,10))) +
-  geom_point(aes(color = Expression), size = 1) +
+  geom_point(aes(color = Expression), size = 1.5) +
   scale_color_manual(values = c("chartreuse3", "purple", "gray50")) +
   guides(colour = guide_legend(override.aes = list(size=3))) +
   geom_hline(yintercept = -log(0.05,10), colour = "gray") +
   # geom_vline(xintercept = c(1, -1), colour="gray") +
-  ggtitle("F") + theme_bw() +
-  theme(
-    axis.line = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
-    axis.ticks = element_line(linewidth = 1.2),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "bottom", legend.title = element_text(size = 18), legend.text = element_text(size = 18, margin = margin(t = 0, b = 0))
-  )
+  ggtitle("F - Somatic non-reproductive") + theme_bw() +
+  theme(plot.title.position = "plot",
+        axis.line = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+        axis.ticks = element_line(linewidth = 1.2),
+        axis.ticks.length = unit(0.2, "cm"),
+        plot.title = element_text(size = 22, hjust = 0.05, vjust = 2, face = "bold"),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14))
+nonrepro_volcano
 ```
+Again, I repeated the plotting code but with `legend.position = "bottom"` to save the legend separately for the final ggarrange plot.
 \
-I do the same with somatic reproductive tissue and germline tissue. 
+I do the same with somatic reproductive tissue and germline tissue (without a duplicated plot for the legend this time since I only need one).  
 ```
 #### SOMATIC REPRODUCTIVE TISSUE ####
 ## Making a DGEList object ##
@@ -286,15 +276,14 @@ counts_for_pca<-cpm(DGEList_repro,log=TRUE,prior.count=1)
 pca_output <- pca(counts_for_pca, metadata = DGEList_repro$samples)
 
 repro_pca <- biplot(pca_output, colby = "group", legendPosition = "none", gridlines.major = FALSE, lab = NULL, colkey = c(
-  "androgenic" = "#41ab5d",
-  "gynogenic" = "#af8dc3",
-  "male" = "#4292c6"), title = "B", titleLabSize = 25) +
-  theme(
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = -1.5),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "none"
-  )
+  "androgenic" = "chartreuse3",
+  "gynogenic" = "purple",
+  "male" = "blue2"), title = "B - Somatic reproductive", titleLabSize = 20) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 22, hjust = 0, vjust = -4),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14),
+        legend.position = "none")
 screeplot(pca_output)
 
 # Estimate common dispersion and tagwise dispersion in one go 
@@ -326,22 +315,20 @@ qlf.androvsgyno_repro_FDR_df <- qlf.androvsgyno_repro_FDR_df %>%
 table(qlf.androvsgyno_repro_FDR_df$Expression)
 
 repro_volcano <- ggplot(qlf.androvsgyno_repro_FDR_df, aes(logFC, -log(FDR,10))) +
-  geom_point(aes(color = Expression), size = 1) +
+  geom_point(aes(color = Expression), size = 1.5) +
   scale_color_manual(values = c("gray50")) +
   guides(colour = guide_legend(override.aes = list(size=1.5))) +
   geom_hline(yintercept = -log(0.05,10), colour = "gray") +
   # geom_vline(xintercept = c(1, -1), colour="gray") +
-  ggtitle("E") + theme_bw() +
-  theme(
-    axis.line = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
-    axis.ticks = element_line(linewidth = 1.2),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "none"
-  )
+  ggtitle("E - Somatic reproductive") + theme_bw() +
+  theme(plot.title.position = "plot",
+        axis.line = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+        axis.ticks = element_line(linewidth = 1.2),
+        axis.ticks.length = unit(0.2, "cm"),
+        plot.title = element_text(size = 22, hjust = 0.05, vjust = 2, face = "bold"),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14))
 
 
 #### GERMLINE TISSUE ####
@@ -374,15 +361,13 @@ counts_for_pca<-cpm(DGEList_germline,log=TRUE,prior.count=1)
 pca_output <- pca(counts_for_pca, metadata = DGEList_germline$samples)
 
 germline_pca <- biplot(pca_output, colby = "group", legendPosition = "none", gridlines.major = FALSE, lab = NULL, colkey = c(
-  "androgenic" = "#a1d99b",
-  "gynogenic" = "#d4b9da",
-  "male" = "#9ecae1"), title = "A", titleLabSize = 25) + 
-  theme(
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = -1.5),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "none"
-  )
+  "androgenic" = "chartreuse3",
+  "gynogenic" = "purple",
+  "male" = "blue2"), title = "A - Germline", titleLabSize = 25) + 
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 22, hjust = 0, vjust = -4),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14))
 screeplot(pca_output)
 
 # Estimate common dispersion and tagwise dispersion in one go 
@@ -422,30 +407,28 @@ qlf.androvsgyno_germline_FDR_df <- qlf.androvsgyno_germline_FDR_df %>%
 table(qlf.androvsgyno_germline_FDR_df$Expression)
 
 germline_volcano <- ggplot(qlf.androvsgyno_germline_FDR_df, aes(logFC, -log(FDR,10))) +
-  geom_point(aes(color = Expression), size = 1) +
+  geom_point(aes(color = Expression), size = 1.5) +
   scale_color_manual(values = c("purple",  "gray50")) +
   guides(colour = guide_legend(override.aes = list(size=1.5))) +
   geom_hline(yintercept = -log(0.05,10), colour = "gray") +
   # geom_vline(xintercept = c(1, -1), colour="gray") +
-  ggtitle("D") + theme_bw() +
-  theme(
-    axis.line = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
-    axis.ticks = element_line(linewidth = 1.2),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
-    axis.title = element_text(size = 18),
-    axis.text = element_text(size = 14),
-    legend.position = "none"
-  )
+  ggtitle("D - Germline") + theme_bw() +
+  theme(plot.title.position = "plot",
+        axis.line = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+        axis.ticks = element_line(linewidth = 1.2),
+        axis.ticks.length = unit(0.2, "cm"),
+        plot.title = element_text(size = 22, hjust = 0.05, vjust = 2, face = "bold"),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14))
 ```
 \
-Now I have PCA and volcano plots for each tissue, I put them all together for a figure. 
+Now I have PCA and volcano plots for each tissue, I put them all together for the final figure (Fig 3). 
 ```
-pca_legend <- ggpubr::get_legend(all_tissue_pca) 
-pca_legend_gg <- as_ggplot(pca_legend) + theme(plot.margin = margin(t = -30, r = 0, b = 0, l = 0))
+pca_legend <- ggpubr::get_legend(non_repro_pca_legend) 
+pca_legend_gg <- as_ggplot(pca_legend) + theme(plot.margin = margin(t = -40, r = 0, b = 0, l = 0))
 vol_legend <- ggpubr::get_legend(nonrepro_volcano_legend)
-png(file="./plots/gene_exp_div.png", height = 900, width = 1000)
-ggarrange(ggarrange(germline_pca,repro_pca, non_repro_pca, ncol = 3, legend = NULL), pca_legend_gg, ggarrange(germline_volcano, repro_volcano, nonrepro_volcano, legend = "none", ncol = 3), vol_legend, nrow = 4, heights = c(1, 0.2, 0.9, 0.1))
+png(file="./plots/gene_exp_div.png", height = 850, width = 1000)
+ggarrange(ggarrange(germline_pca,repro_pca, non_repro_pca, ncol = 3, common.legend = FALSE), pca_legend_gg, ggarrange(germline_volcano, repro_volcano, nonrepro_volcano, legend = "none", ncol = 3), vol_legend, nrow = 4, heights = c(1, 0.05, 0.9, 0.1))
 dev.off()
 ```
