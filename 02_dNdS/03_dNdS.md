@@ -158,4 +158,4 @@ write.csv(X_Inv_SCO_genes_dNdS, "output/X_Inv_ortholog_dNdS.csv", row.names = FA
 X_Inv_diff_genes <- X_Inv_SCO_genes_dNdS[abs(X_Inv_SCO_genes_dNdS$dNdS_diff) != 0, ]
 nrow(X_Inv_diff_genes) #123 not equal to 0
 ```
-This will be combined later with homolog-specific expression analysis. 
+This will be combined later with allele-biased expression analysis. 
