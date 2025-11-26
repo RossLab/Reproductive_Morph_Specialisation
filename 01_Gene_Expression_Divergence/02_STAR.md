@@ -1,4 +1,4 @@
-## Map RNA-seq reads to the reference genome ##
+### Map RNA-seq reads to the reference genome ###
 
 Map trimmed RNA reads to the genome with STAR (v2.7.11b). The genome used here is the Bcop_v3 genome which has the X' inversion scaffold as well. Reads from androgenic (XX) females and males (X0) should not map to the X' scaffold, so the mapping rate of those samples to X' gives an estimate of mapping error rate. 
 
