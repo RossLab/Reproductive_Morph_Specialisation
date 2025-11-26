@@ -1,3 +1,5 @@
+# Map RNA to N-masked genome and summarise read counts #
+
 Once I have my genome, subsetted for only autosomes and X chromosome (aka no Inversion), and N-masked at variant sites on the X chromosome, I can align my reads to this N-masked genome.
 \
 \
@@ -6,9 +8,9 @@ I use the trimmed reads I have previously produced in 01_Gene_Expression_Diverge
 ```
 
 # Define file name
-NGENOME="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/Bcop_v3-chromosomes_X_Nmasked.fasta"
-ANNO="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_geneid.augustus.gtf"
-READLOC="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/01_STAR/outputs/"
+NGENOME="outputs/Bcop_v3-chromosomes_X_Nmasked.fasta"
+ANNO="Bcop_v3_geneid.augustus.gtf"
+READLOC="outputs/"
 
 awk '$1 == "X" || $1 == "II" || $1 == "III" || $1 == "IV"' ${ANNO} > Bcop_v3_geneid_noinv.augustus.gtf
 ANNO="Bcop_v3_geneid_noinv.augustus.gtf"
@@ -51,14 +53,14 @@ I checked the `*.STAR.Log.final.out` for the % of uniquely mapped reads, multima
 Then I summarise the reads with featureCounts.
 ```
 # Define file names
-NGENOME="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/Bcop_v3-chromosomes_X_Nmasked.fasta"
-ANNO="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_geneid.augustus.gtf"
+NGENOME="outputs/Bcop_v3-chromosomes_X_Nmasked.fasta"
+ANNO="Bcop_v3_geneid.augustus.gtf"
 
 awk '$1 == "X" || $1 == "II" || $1 == "III" || $1 == "IV"' ${ANNO} > Bcop_v3_geneid_noinv.augustus.gtf
 ANNO="Bcop_v3_geneid_noinv.augustus.gtf"
 
 # STAR aligned bam files
-BAMLOC="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/outputs/"
+BAMLOC="outputs/"
 
 echo "running featureCounts"
 for file in ${BAMLOC}*.out.bam
