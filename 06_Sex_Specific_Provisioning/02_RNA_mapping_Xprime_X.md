@@ -1,3 +1,4 @@
+# Mapping embryo RNA-seq libraries to the X'X scaffolds, and summarising read counts #
 I am interested in whether there is biased deposition of transcripts from the X or X' gametolog in the eggs of gynogenic females. To study this I first map the RNA reads again, but with stricter filters for read quality and mapping quality. 
 ```
 LOC="inputs/"
