@@ -21,9 +21,9 @@ done
 I then map it to the reference genome. As I said before, I need to subset for the autosomes and X chromosome only. I then use bwa to map the reads to the reference genome since it is meant to be better than minimap2 for short read (see https://lh3.github.io/2018/04/02/minimap2-and-the-future-of-bwa).
 ```
 # Define file names
-GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
-READ_1="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool_1.trimmed.fq.gz"
-READ_2="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool_2.trimmed.fq.gz"
+GENOME="Bcop_v3-chromosomes.fasta"
+READ_1="outputs/H2_XpX_pool_1.trimmed.fq.gz"
+READ_2="outputs/H2_XpX_pool_2.trimmed.fq.gz"
 
 ## Subset the genome for X, II, III, and IV chromosomes only
 samtools faidx ${GENOME}
@@ -38,8 +38,8 @@ samtools sort -@ 32 -o H2_XpX_pool.sorted.bam H2_XpX_pool.bam
 I prefer to call variants with bcftools. I first mark duplicates with picard to reduce the chance of false positives.
 ```
 # Define file names
-BAM="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool.sorted.bam"
-GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
+BAM="outputs/H2_XpX_pool.sorted.bam"
+GENOME="Bcop_v3-chromosomes.fasta"
 
 samtools index ${BAM}
 
@@ -76,8 +76,8 @@ bcftools index H2_XpX_pool_filtered_snps.vcf.gz
 ```
 Finally, N-mask variant sites on the X chromosome.
 ```
-VCF="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence_FINAL/06_sexually_antagonistic_selection/N_masked_genome/outputs/H2_XpX_pool_filtered_snps.vcf.gz"
-GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
+VCF="outputs/H2_XpX_pool_filtered_snps.vcf.gz"
+GENOME="Bcop_v3-chromosomes.fasta"
 
 zgrep -e ^# -e "0[/|]1" ${VCF} | grep "X" | gzip > H2_XpX_pool_filtered_snps_het.vcf.gz
 
