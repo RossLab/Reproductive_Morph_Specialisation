@@ -53,8 +53,10 @@ nrow(counts_nmask) # 16082
 counts_nmask_edgeR <- DGEList(counts=counts_nmask)
 # Calculate logCPM
 counts_nmask_logcpm <- cpm(counts_nmask_edgeR, log=TRUE, prior.count=1)
-
-
+```
+\
+Plotting androgenic/gynogenic female expression for autosomal, X'X, or all genes for somatic non-reproductive tissue.
+```
 ##### NON REPRODUCTIVE TISSUE #####
 logcpm_nonrepro <- counts_nmask_logcpm[, c(7:9, 16:18, 25:27)]
 logcpm_nonrepro_means <- data.frame(
@@ -78,40 +80,67 @@ logcpm_nonrepro_means_long_X <- logcpm_nonrepro_means_long[logcpm_nonrepro_means
 
 # Plot using ggplot
 male_vs_female_nonrepro_all <- ggplot(logcpm_nonrepro_means_long, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
-  geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
+  geom_smooth(method = "lm", se = FALSE, size = 1) +  # Add regression lines
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Non-reproductive tissue")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("G") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 male_vs_female_nonrepro_autosomes <- ggplot(logcpm_nonrepro_means_long_autosomes, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Non-reproductive tissue (Autosomal genes)")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("H") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 male_vs_female_nonrepro_X <- ggplot(logcpm_nonrepro_means_long_X, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Non-reproductive tissue (X genes)")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("I") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 # Fit a combined linear model with an interaction term
 summary(lm(Value ~ Male * Group, data = logcpm_nonrepro_means_long_autosomes))
 summary(lm(Value ~ Male * Group, data = logcpm_nonrepro_means_long_X))
 # Interaction term is not significant, the slope isn't different 
-
+```
+\
+Now I do the same for somatic reproductive tissue and germline tissue.
+```
 ##### REPRODUCTIVE TISSUE #####
 logcpm_repro <- counts_nmask_logcpm[, c(4:6, 13:15, 22:24)]
 logcpm_repro_means <- data.frame(
@@ -135,34 +164,58 @@ logcpm_repro_means_long_X <- logcpm_repro_means_long[logcpm_repro_means_long$Gen
 
 # Plot using ggplot
 male_vs_female_repro_all <- ggplot(logcpm_repro_means_long, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Rreproductive tissue")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("D") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 male_vs_female_repro_autosomes <- ggplot(logcpm_repro_means_long_autosomes, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Reproductive tissue (Autosomal genes)")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("E") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 male_vs_female_repro_X <- ggplot(logcpm_repro_means_long_X, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Reproductive tissue (X genes)")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("F") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 # Fit a combined linear model with an interaction term
 summary(lm(Value ~ Male * Group, data = logcpm_repro_means_long_autosomes))
@@ -192,37 +245,69 @@ logcpm_germline_means_long_X <- logcpm_germline_means_long[logcpm_germline_means
 
 # Plot using ggplot
 male_vs_female_germline_all <- ggplot(logcpm_germline_means_long, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Germline tissue")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("A") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "bottom",
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 18)) +
+  guides(color = guide_legend(override.aes = list(linewidth = 2, shape = NA)))
 
 male_vs_female_germline_autosomes <- ggplot(logcpm_germline_means_long_autosomes, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Germline tissue (Autosomal genes)")
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("B") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 
 male_vs_female_germline_X <- ggplot(logcpm_germline_means_long_X, aes(x = Male, y = Value, color = Group)) +
-  geom_point(shape = 1) +                       # Scatter points
+  geom_point(shape = 1, alpha = 0.2) +                       # Scatter points
   geom_smooth(method = "lm", se = FALSE) +  # Add regression lines
-  labs(x = "Male", y = "Expression Level", color = "Group") +
+  labs(x = "Male expression (logCPM)", y = "Female expression (logCPM)", color = "Group") +
   scale_color_manual(values = c("chartreuse3", "purple")) +
-  xlim(c(-4,20)) +
-  ylim(c(-4,20)) +
-  theme_minimal() +
-  ggtitle("Regression of Male vs. Androgenic and Gynogenic in Germline tissue (X genes)")
-
+  xlim(c(NA, 20)) +
+  ylim(c(NA, 20)) +
+  ggtitle("C") + theme_bw() +
+  theme(
+    axis.line = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1.2),
+    axis.ticks = element_line(linewidth = 1.2),
+    axis.ticks.length = unit(0.2, "cm"),
+    plot.title = element_text(size = 25, hjust = -0.1, vjust = 0.1, face = "bold"),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.position = "none")
 # Fit a combined linear model with an interaction term
 summary(lm(Value ~ Male * Group, data = logcpm_germline_means_long_autosomes))
 summary(lm(Value ~ Male * Group, data = logcpm_germline_means_long_X))
 # Interaction term is not significant, the slope isn't different
+```
+Put all the plots together using ggarrange for Fig. 5.
+```
+png(file="./outputs/SAS_comparison.png", height = 1000, width = 1000)
+ggarrange(male_vs_female_germline_all, male_vs_female_germline_autosomes, male_vs_female_germline_X, male_vs_female_repro_all, male_vs_female_repro_autosomes, male_vs_female_repro_X, male_vs_female_nonrepro_all, male_vs_female_nonrepro_autosomes, male_vs_female_nonrepro_X, ncol = 3, nrow = 3, common.legend = TRUE, legend = "bottom")
+dev.off()
 ```
