@@ -1,5 +1,7 @@
 Corresponds to Results section 2.3.1 (No evidence for release from sexually antagonistic selection) and Method section 4.3 (Release from sexually antagonistic selection).
-
+\
+\
+\
 I could see two ways of doing this analysis:
 
 I can use the same reference genome I've used so far, subsetted for the autosomes and X, and then N-mask the sites on the X chromosomes where there are substitutions on the X'. I can then map reads from all libraries (androgenic female, gynogenic female, male) to this N-masked genome, and compare count values for each gene directly.
