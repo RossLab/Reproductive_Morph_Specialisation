@@ -1,19 +1,24 @@
-I first map the RNA-seq reads to the _B. coprophila_ genome. (Mention that the genome and the RNA seq reads came from the same inbred lab line, but that i am only using reads from gynogenic females) Since this is not exactly allele-specific expression, but more like homolog specific expression, I am using strict mapping rules to ensure that reads are mapping to the correct homolog on the X vs the X'. This involves keeping only primary alignments in the case of imperfect multimappers, and filtering away perfect multimappers. In this case I should be left with only informative reads. 
-
+# RNA mapping and read summation to X and X' gametologs #
+I am interested in allele-biased expression between X and X' gametologs, within gynogenic females. To do this, I use only RNA-seq libraries from gynogenic females, and map them to the Bcop-v3 genome which includes the inversion scaffold. One difference between traditional allele-specific expression and my analysis is that my gametologs may not necessarily be the same length, due to degeneration of the X' or lower quality assembly of the X' chromosome. 
+\
+\
+To reduce mismapping later on, I first trim my RNA reads using Fastp (v0.24.0) with a more stringent read quality filter. The default fastp quality threshold is phred quality of >=15. I'm going to bump that up to 20.
 ```
 # Trim RNA reads to retain only high quality reads to minimising sequencing errors
-# Default fastp quality threshold is phred quality of >=15. I'm going to bump that up to 20.
 for file in $(cat gyno_list.txt)
 do
         base=$(basename $file "_1.fq.gz")
-        fastp -q 20 --correction -i /mnt/hel/ross/sequencing/raw/novogene_may_2023_gnats/X204SC23040157-Z01-F001_02/01.RawData/B*/${base}_1.fq.gz \
-        -I /mnt/hel/ross/sequencing/raw/novogene_may_2023_gnats/X204SC23040157-Z01-F001_02/01.RawData/B*/${base}_2.fq.gz \
+        fastp -q 20 --correction -i B*/${base}_1.fq.gz \
+        -I B*/${base}_2.fq.gz \
         -o ${base}_1.trimmed.fq.gz -O ${base}_2.trimmed.fq.gz
 done
+```
+I then map the high quality reads to the Bcop-v3 genome with STAR (v2.7.11b). I am using strict mapping rules to ensure that reads are mapping to the correct homolog on the X vs the X'. This involves keeping only primary alignments in the case of imperfect multimappers, and filtering away perfect multimappers. In this case I should be left with only informative reads that are definitively from either the X or X'. 
+```
 
 # Define file names for RNA mapping
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
-ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3.augustus.gtf'
+GENOME='Bcop_v3-chromosomes.fasta'
+ANNO='Bcop_v3.augustus.gtf'
 
 #mkdir Bcop_v3-chromosomes.STAR
 
@@ -59,11 +64,11 @@ do
 done
 # This filters out perfect multimappers, which will have a very low mapping quality score. 
 ```
-This leaves me with a bam file of reads that are not perfect multimappers, or the primary alignment in imperfect multimappers. Now I can summarise the read count with featureCounts. 
+This leaves me with a bam file of reads that are not perfect multimappers, or the primary alignment in imperfect multimappers. Now I can summarise the read count with featureCounts (v2.0.8). 
 ```
 # Define file names
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
-ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_geneid.augustus.gtf'
+GENOME='Bcop_v3-chromosomes.fasta'
+ANNO='Bcop_v3_geneid.augustus.gtf'
 
 echo "running featureCounts"
 for file in $(ls *.STAR.Aligned.sortedByCoord.filtered.out.bam)
@@ -73,4 +78,4 @@ do
         featureCounts -T 5 -p --countReadPairs -M --primary -a ${ANNO} -t exon -g gene_id -o ${base}.featureCounts.txt ${base}.STAR.Aligned.sortedByCoord.filtered.out.bam
 done
 ```
-I then move to R to carry out homolog-specific expression. 
+I then move to R to carry out allele-biased expression. 
