@@ -2,6 +2,7 @@ The big difference between conventional allele-specific expression and my analys
 
 This is done in R (v4.3.2).
 
+Required packages:
 ```
 Packages:
 library(tidyverse) # v2.0.0
@@ -13,7 +14,8 @@ library(stringr) # v1.5.1
 library(lme4) # v1.1-35.1
 library(lmerTest) #v1.1-3
 library(emmeans) #v1.10.0
-
+```
+```
 ## Files I need: 
 # RNA seq design 
 design <- read.csv("r_input/allele_specific_expression_gyno_design.csv", header = T)
