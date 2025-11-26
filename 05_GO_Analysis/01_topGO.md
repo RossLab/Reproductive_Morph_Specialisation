@@ -1,3 +1,4 @@
+# Gene ontology (GO) enrichment analysis for differentially expressed autosomal genes #
 With the list of differentially expressed autosomal genes, I wanted to see whether they were enriched for a specific gene ontology (GO) term, which would provide some hints as to the functional basis of their divergence. I do this using the `topGO` package. 
 \
 \
