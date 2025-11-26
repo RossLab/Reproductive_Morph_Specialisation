@@ -244,6 +244,7 @@ nonrepro_volcano
 ```
 Again, I repeated the plotting code but with `legend.position = "bottom"` to save the legend separately for the final ggarrange plot.
 \
+\
 I do the same with somatic reproductive tissue and germline tissue (without a duplicated plot for the legend this time since I only need one).  
 ```
 #### SOMATIC REPRODUCTIVE TISSUE ####
