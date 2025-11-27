@@ -13,9 +13,9 @@ I am using `partitioncds.py` from [this github](https://github.com/A-J-F-Mackint
 # bcftools v(1.21)
 
 # Define file names for the Illumina librarys (KM1 and KM2), and the reference genome (GENOME). 
-KM1='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/KM_heterozygosity/inputs/KMG_1.trimmed.fq.gz'
-KM2='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/KM_heterozygosity/inputs/KMG_2.trimmed.fq.gz'
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
+KM1='inputs/KMG_1.trimmed.fq.gz'
+KM2='inputs/KMG_2.trimmed.fq.gz'
+GENOME='Bcop_v3-chromosomes.fasta'
 base='Bcop_v3_KM'
 
 ## Using bwa-mem to align Illumina library to reference genome
@@ -42,7 +42,7 @@ bcftools index ${base}.vcf.gz
 I have a gff file for the genome but not a bed file, so I had to make that. The gff file was also missing info for some rows so had to fix it beforehand. 
 ```
 # Define file names
-GFF="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_fixed.gff3"
+GFF="Bcop_v3_fixed.gff3"
 base="Bcop_v3_fixed"
 
 cat ${GFF} | gt gff3 -sort -tidy -retainids -fixregionboundaries > ${base}.tidy.gff3
@@ -59,12 +59,12 @@ awk 'BEGIN {OFS="\t"} {
 Once I have all the files I need, I can run `partitioncds.py`.
 ```
 # Sync files in or define file names
-GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
-BEDFILE="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_fixed.tidy.gt.sorted.input.bed"
-VCF="/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_KM.vcf.gz"
-ANNO="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_fixed.gff3"
+GENOME="Bcop_v3-chromosomes.fasta"
+BEDFILE="output/Bcop_v3_fixed.tidy.gt.sorted.input.bed"
+VCF="output/Bcop_v3_KM.vcf.gz"
+ANNO="Bcop_v3_fixed.gff3"
 
-python /mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/scripts/partitioncds.py -f $GENOME -v $VCF -b $BEDFILE
+python partitioncds.py -f $GENOME -v $VCF -b $BEDFILE
 
 ### subset 0x, 2x, 3x and 4x degenerate sites:
 grep "_0" gimble.cds.bed > gimble.cds.0xsites.bed
