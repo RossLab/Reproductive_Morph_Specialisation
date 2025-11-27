@@ -10,8 +10,8 @@ I first map PacBio long reads from _B. odoriphaga_ to the _B. coprophila_ genome
 # bcftools (v1.21)
 
 # Eefine file names, including the long reads for _B. odoriphaga_, and the reference genome for _B. coprophila_
-Bodo='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/input/SRR11366020_trimmed.fastq'
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
+Bodo='input/SRR11366020_trimmed.fastq'
+GENOME='Bcop_v3-chromosomes.fasta'
 base='Bcop_v3_Bodo_X'
 
 ## Subset the genome for X, II, III, and IV chromosomes only
@@ -46,8 +46,8 @@ I do the same for the autosome and inversion version of the genome.
 
 ```
 # Define file names
-Bodo='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/input/SRR11366020_trimmed.fastq'
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
+Bodo='SRR11366020_trimmed.fastq'
+GENOME='Bcop_v3-chromosomes.fasta'
 base='Bcop_v3_Bodo_Inv'
 
 ## Subset the genome for Inversion, II, III, and IV chromosomes only
@@ -85,9 +85,9 @@ Then, I can use snpEff to annotate the vcf with the type of mutation the SNP pro
 # snpsift v5.2 
 
 # Define file names
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
-ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3.augustus.gtf'
-VCF='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_Bodo_X.vcf.gz'
+GENOME='Bcop_v3-chromosomes.fasta'
+ANNO='Bcop_v3.augustus.gtf'
+VCF='output/Bcop_v3_Bodo_X.vcf.gz'
 
 # I have edited the config file of snpEff in my conda environment, which is ~/micromamba/envs/vcf/share/snpeff-5.2-1/snpEff.config to add Bradysia coprophila
 # Bradysia coprophila genome (v3)
@@ -121,9 +121,9 @@ cat Bcop.filterstats.genes.txt | cut -f2,3,18,26,27 > Bcop_X.filterstats.genes.r
 
 ```
 # Define file names
-GENOME='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta'
-ANNO='/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3.augustus.gtf'
-VCF='/mnt/loki/ross/flies/sciaridae/Bradysia_coprophila/B_coprophila_morph_gene_divergence/04_dnds/output/Bcop_v3_Bodo_Inv.vcf.gz'
+GENOME='Bcop_v3-chromosomes.fasta'
+ANNO='Bcop_v3.augustus.gtf'
+VCF='output/Bcop_v3_Bodo_Inv.vcf.gz'
 
 # I have edited the config file of snpEff in my conda environment, which is ~/micromamba/envs/vcf/share/snpeff-5.2-1/snpEff.config to add Bradysia coprophila
 # Bradysia coprophila genome (v3)
@@ -158,8 +158,8 @@ cat Bcop.filterstats.genes.txt | cut -f2,3,18,26,27 > Bcop_Inv.filterstats.genes
 Now I have the number of synonymous and nonsynonymous mutations for each gene on the autosomes, X chromosome and the inversion. To allow a comparison between the two, I run Orthofinder to find 1-1 homologs between the X chromosome and the inversion. 
 ```
 # Define file names
-GFF="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3_fixed.gff3"
-GENOME="/mnt/loki/ross/assemblies/flies/sciaridae/Bradysia_coprophila/Bcop_v3-chromosomes.fasta"
+GFF="Bcop_v3_fixed.gff3"
+GENOME="Bcop_v3-chromosomes.fasta"
 
 awk '$1 == "X" && $3 == "mRNA"' ${GFF} > Bcop_X.gff
 awk '$1 == "Inversion" && $3 == "mRNA"' ${GFF} > Bcop_Inv.gff
