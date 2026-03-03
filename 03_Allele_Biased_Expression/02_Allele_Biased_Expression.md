@@ -265,11 +265,6 @@ exp_dNdS_plot_nonrepro <- ggplot(data = exp_dNdS_summary, aes(x = bias, y = dNdS
         legend.position = "none")
 exp_dNdS_plot_nonrepro
 ```
-```
-
-```
-\
-Repeating this with somatic non-reproductive and germline tissue.
 \
 I am also interested in whether differential expression between gynogenic and androgenic females in X-linked genes is associated with biased expression between X and X' gametologs in gynogenic females. 
 ```
