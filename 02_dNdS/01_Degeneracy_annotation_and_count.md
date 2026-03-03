@@ -39,30 +39,26 @@ bcftools mpileup -Ou -f ${GENOME} ${base}.bwa.rg.rmdup.sorted.bam | bcftools cal
 bcftools index ${base}.vcf.gz
 ```
 \
-I have a gff file for the genome but not a bed file, so I had to make that. The gff file was also missing info for some rows so had to fix it beforehand. 
+I have a gff file for the genome but not a bed file, so I had to make that. Beforehand, I subsetted the gff file for only the longest transcript of each gene. The gff file was also missing info for some rows so had to fix it beforehand (with AGAT). 
 ```
 # Define file names
-GFF="Bcop_v3_fixed.gff3"
+GFF="Bcop_v3_fixed_longest_isoform.gff3"
 base="Bcop_v3_fixed"
 
 cat ${GFF} | gt gff3 -sort -tidy -retainids -fixregionboundaries > ${base}.tidy.gff3
 gff2bed < ${base}.tidy.gff3 > ${base}.tidy.gt.bed
 cat ${base}.tidy.gt.bed | awk '$8=="CDS"' OFS="\t" | cut -f 1,2,3,5,6,10 | sort -k1,1V -k2,2n > ${base}.tidy.gt.sorted.bed
-awk 'BEGIN {OFS="\t"} {
-    split($6, arr, ";");
-    split(arr[1], id_arr, "=");
-    transcript_id = id_arr[2];
-    print $1, $2, $3, transcript_id, $4, $5;
-}' ${base}.tidy.gt.sorted.bed > ${base}.tidy.gt.sorted.input.bed
+# Might need to be adjusted depending on the method your gff was generated 
+awk '$8=="CDS"' OFS="\t" ${base}.tidy.gt.bed | cut -f1,2,3,10,5,6 | sort -k1,1V -k2,2n | awk 'BEGIN{FS=OFS="\t"}{name=""; if (match($6,/Parent=([^;]+)/,m)) name=m[1]; else if (match($6,/ID=([^;]+)/,m)) {name=m[1]; sub(/.CDS.*/,"",name)}; print $1,$2,$3,name,$4,$5}' > ${base}.tidy.gt.CDS.bed
 ```
 \
 Once I have all the files I need, I can run `partitioncds.py`.
 ```
 # Sync files in or define file names
 GENOME="Bcop_v3-chromosomes.fasta"
-BEDFILE="output/Bcop_v3_fixed.tidy.gt.sorted.input.bed"
+BEDFILE="output/Bcop_v3_longest.tidy.gt.CDS.bed"
 VCF="output/Bcop_v3_KM.vcf.gz"
-ANNO="Bcop_v3_fixed.gff3"
+ANNO="Bcop_v3_fixed_longest_isoform.gff3"
 
 python partitioncds.py -f $GENOME -v $VCF -b $BEDFILE
 
@@ -73,8 +69,8 @@ grep "_3" gimble.cds.bed > gimble.cds.3xsites.bed
 grep "_4" gimble.cds.bed > gimble.cds.4xsites.bed
 gzip gimble.cds.bed
 
-gff2bed < ${ANNO} > Bcop_v3_fixed.bed
-ANNO_BED="Bcop_v3_fixed.bed"
+gff2bed < ${ANNO} > Bcop_v3_fixed_longest_isoform.bed
+ANNO_BED="Bcop_v3_fixed_longest_isoform.bed"
 ### intersect degeneracy annotation with bedfile
 bedtools intersect -a ${ANNO_BED} -b gimble.cds.0xsites.bed > genes.0x.sites.bed && rm gimble.cds.0xsites.bed
 grep "mRNA" genes.0x.sites.bed | sed 's/ID=//g' | sed 's/;.*//g' | cut -f1,2,3,10 > genes.0x.sites.fixed.bed && gzip genes.0x.sites.fixed.bed #&& rm genes.0x.sites.bed
