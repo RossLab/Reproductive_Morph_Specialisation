@@ -4,7 +4,7 @@ The genome used in this paper was generated in [Baird, 2023](https://academic.ou
 
 ## Transcriptome data ##
 
-Data was collected for [Baird, 2025](https://www.nature.com/articles/s41467-025-60114-8). It was collected from the same Holo2 line from which the reference genome was generated. 
+Data was collected for [Baird, 2025](https://www.nature.com/articles/s41467-025-60114-8). It was collected from the same Holo2 line from which the reference genome was generated and can be found on NCBI under accession PRJNA1109384. 
 
 | Sample ID  | Sex | Tissue | Sample size |
 | --- | --- | --- | --- |
