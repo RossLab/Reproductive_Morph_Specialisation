@@ -307,7 +307,7 @@ summary(lm(Value ~ Male * Group, data = logcpm_germline_means_long_autosomes))
 summary(lm(Value ~ Male * Group, data = logcpm_germline_means_long_X))
 # Interaction term is not significant, the slope isn't different
 ```
-Put all the plots together using ggarrange for Fig. 5.
+Put all the plots together using ggarrange for Fig. 6.
 ```
 png(file="./outputs/SAS_comparison.png", height = 1000, width = 1000)
 ggarrange(male_vs_female_germline_all, male_vs_female_germline_autosomes, male_vs_female_germline_X, male_vs_female_repro_all, male_vs_female_repro_autosomes, male_vs_female_repro_X, male_vs_female_nonrepro_all, male_vs_female_nonrepro_autosomes, male_vs_female_nonrepro_X, ncol = 3, nrow = 3, common.legend = TRUE, legend = "bottom")
