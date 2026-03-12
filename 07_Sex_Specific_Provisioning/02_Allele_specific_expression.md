@@ -81,15 +81,13 @@ I can now take the read count files into R for allele-specific analysis.
 Packages I need:
 ```
 Packages:
+Packages:
 library(tidyverse) # v2.0.0
 library(ggpubr) # v0.6.0
 library(dplyr) # v1.1.4
 library(GenomicRanges) # v1.54.1
-library(tidyr) # v1.3.1
-library(stringr) # v1.5.1
-library(lme4) # v1.1-35.1
-library(lmerTest) #v1.1-3
-library(emmeans) #v1.10.0
+library(glmmTMB) # v1.1.11
+library(rstatix) # v0.7.2
 ```
 \
 I first read in my design table, read counts, and normalise genes counts by gene length (which may differ between the gametologs).
@@ -100,12 +98,6 @@ design_ase <- read.csv("r_input/maternal_deposit_design.csv")
 design_ase <- design_ase[1:3,]
 design_ase$path <- paste0("r_input/", design_ase$sample_id, ".ase.featureCounts.txt",sep="")
 design_ase
-
-
-# All genes 
-genes_and_chromosomes <- read.table("r_input/Bcop_v3_genes_and_chromosomes.tsv")
-X_Inv <- genes_and_chromosomes[(genes_and_chromosomes$V1 == "X") | (genes_and_chromosomes$V1 == "Inversion"), ]
-nrow(X_Inv) # 7371 (3898 X genes and 3473 Inv genes)
 
 # Which X and X' genes are orthologs, output of orthofinder. 
 X_Inv_orthogroups <- read.table("r_input/X_vs_Inv_longest_OG_HOG.tsv", header = T, sep="\t")
@@ -130,152 +122,261 @@ exons_by_gene <- GenomicFeatures::exonsBy(txdb, by = "gene")
 gene_lengths <- sum(width(reduce(exons_by_gene)))
 length(gene_lengths) # 24050
 
-X_Inv_lengths <- gene_lengths[names(gene_lengths) %in% X_Inv$V2]
-length(X_Inv_lengths) # 7371
+X_Inv_lengths <- gene_lengths[names(gene_lengths) %in% X_Inv_SCO_genes$Inv_transcript | names(gene_lengths) %in% X_Inv_SCO_genes$X_transcript]
+length(X_Inv_lengths) # 5406
+
+X_Inv_lengths_df <- data.frame(Inv_transcript = names(X_Inv_lengths), Inv_length = X_Inv_lengths)
+X_Inv_SCO_genes <- left_join(X_Inv_SCO_genes, X_Inv_lengths_df, by = "Inv_transcript") 
+nrow(X_Inv_SCO_genes)
+X_Inv_lengths_df <- data.frame(X_transcript = names(X_Inv_lengths), X_length = X_Inv_lengths)
+X_Inv_SCO_genes <- left_join(X_Inv_SCO_genes, X_Inv_lengths_df, by = "X_transcript") 
+nrow(X_Inv_SCO_genes) #2703
+ggplot(data = X_Inv_SCO_genes, aes(x = X_length, y = Inv_length)) +
+  geom_point(size = 2, alpha = 0.2) +
+  geom_smooth() + geom_abline(slope = 1, intercept = 0)
+## There is a length difference between the X and Inv transcripts, especially for longer genes 
+X_Inv_SCO_genes <- X_Inv_SCO_genes %>%
+  mutate(Number = as.factor(row_number()))%>%
+  mutate(p0       = Inv_length / (Inv_length + X_length),
+         logit_p0 = qlogis(p0))
+X_Inv_SCO_genes_length_long <- bind_rows(transmute(X_Inv_SCO_genes, Geneid = Inv_transcript, Number, Allele = "Inv", Len = Inv_length, logit_p0),
+                                         transmute(X_Inv_SCO_genes, Geneid = X_transcript, Number, Allele = "X", Len = X_length, logit_p0)) 
+
+X_Inv_SCO_genes_length_long <- X_Inv_SCO_genes_length_long %>%
+  arrange(Number)
+nrow(X_Inv_SCO_genes_length_long) # 5406
+head(X_Inv_SCO_genes_length_long)
 
 ### Read in the featureCounts counts, each column is one sample
-ase_featureCounts <- lapply(design_ase$path, function(x)read.table(x, header=T)) # applies the read.table() function to each file path, reading each file into a data frame
-names(ase_featureCounts) <- design_ase$sample_id # Names each dataframe in the list
-ase_featureCounts <- lapply(ase_featureCounts, function(x) x[, c(1, 7)]) # For each data frame in the list, only columns 1 and 7 are kept.
-ase_featureCounts <- lapply(names(ase_featureCounts), function(name) {
-  x <- ase_featureCounts[[name]]
+featureCounts <- lapply(design_ase$path, function(x)read.table(x, header=T)) # applies the read.table() function to each file path, reading each file into a data frame
+names(featureCounts) <- design_ase$sample_id # Names each dataframe in the list
+featureCounts <- lapply(featureCounts, function(x) x[, c(1, 7)]) # For each data frame in the list, only columns 1 and 7 are kept.
+featureCounts <- lapply(names(featureCounts), function(name) {
+  x <- featureCounts[[name]]
   colnames(x)[2] <- name
   x 
 }) # Assigns the corresponding sample ID (name) as the name of the second column (the count data column)
-names(ase_featureCounts) <- design_ase$sample_id # Names each dataframe in the list because the name got lost
-
-ase_raw_gene_counts <- data.frame("Geneid" = X_Inv$V2) # Subset for only the genes on the X or Inversion
-for (name in names(ase_featureCounts)) {
+names(featureCounts) <- design_ase$sample_id # Names each dataframe in the list because the name got lost
+for (name in names(featureCounts)) {
   # Extract the current table
-  x <- ase_featureCounts[[name]]
-  # Extract column 2, setting it as a new column in `autosomal_counts` with the sample ID as the column name
-  ase_raw_gene_counts <- merge(ase_raw_gene_counts, x, by = "Geneid", all.x = TRUE)
+  x <- featureCounts[[name]]
+  # Extract column 2, setting it as a new column in counts table with the sample ID as the column name
+  X_Inv_SCO_genes_length_long <- merge(X_Inv_SCO_genes_length_long, x, by = "Geneid", all.x = TRUE)
 }
-rownames(ase_raw_gene_counts) <- ase_raw_gene_counts$Geneid
-ase_raw_gene_counts <- ase_raw_gene_counts[ , 2:4]
-nrow(ase_raw_gene_counts) # 7371
+X_Inv_SCO_genes_length_long <- X_Inv_SCO_genes_length_long %>%
+  arrange(Number)
+nrow(X_Inv_SCO_genes_length_long) #5406
 
-### Now I have the gene length of each gene, and the RNA read count, I can normalise the counts by length
-ase_raw_gene_counts$Lengths <- X_Inv_lengths[match(rownames(ase_raw_gene_counts), names(X_Inv_lengths))]
-head(ase_raw_gene_counts)
-# Store the lengths
-lengths_kb <- ase_raw_gene_counts$Lengths / 1000
-# Compute reads per kilobase for all samples
-rpk <- sweep(ase_raw_gene_counts[, -ncol(ase_raw_gene_counts)], 1, lengths_kb, FUN = "/")
-# Compute the scaling factors (per column)
-scaling_factors <- colSums(rpk) / 1e6
-# Compute transcripts per million
-tpm <- sweep(rpk, 2, scaling_factors, FUN = "/")
-# Add gene names back
-rownames(tpm) <- rownames(ase_raw_gene_counts)
-head(tpm)
+## Allele-specific expression ##
+design_ase
+gene_counts_matdep <- X_Inv_SCO_genes_length_long
+sample_cols <- grep("^female_0-4h_rep\\d+", names(gene_counts_matdep), value = TRUE)
+gene_counts_matdep_long <- gene_counts_matdep %>%
+  pivot_longer(cols = all_of(sample_cols),
+               names_to = "Sample", values_to = "Count") %>%
+  group_by(Number, Sample) %>%
+  summarise(
+    Count_Inv = sum(Count[Allele == "Inv"], na.rm = TRUE),
+    Count_X   = sum(Count[Allele == "X"],   na.rm = TRUE),
+    logit_p0  = dplyr::first(logit_p0),     # same within a Pair
+    .groups   = "drop"
+  ) 
+nrow(gene_counts_matdep_long) # 8109
+head(gene_counts_matdep_long, n =30) 
 
-### Put all the length normalised gene counts in a table 
-X_Inv_SCO_genes_count <- data.frame(Number = c(1:nrow(X_Inv_SCO_genes)), X_Inv_SCO_genes)
-# Adds a number ordering the table. This is to recognise the orthogroups later and also so merge doesn't change the order of the genes
-head(X_Inv_SCO_genes_count)
+## Get rid of zero counts -> unexpressed 
 
-tpm_X <- tpm
-colnames(tpm_X) <- c(paste0(design_ase$sample_id, "_X",sep=""))
-tpm_X$X_transcript <- rownames(tpm_X)
-tpm_Inv <- tpm
-colnames(tpm_Inv)<- c(paste0(design_ase$sample_id, "_Inv",sep=""))
-tpm_Inv$Inv_transcript <- rownames(tpm_Inv)
+gene_counts_matdep_long_filt <- gene_counts_matdep_long %>%
+  mutate(Total = Count_Inv + Count_X) %>% 
+  filter(Total > 0)
+nrow(gene_counts_matdep_long_filt) #6071
 
-X_Inv_SCO_genes_count
-X_Inv_SCO_genes_count <- merge(X_Inv_SCO_genes_count, tpm_X, by = "X_transcript")
-X_Inv_SCO_genes_count <- merge(X_Inv_SCO_genes_count, tpm_Inv, by = "Inv_transcript")
-X_Inv_SCO_genes_count <- X_Inv_SCO_genes_count[order(X_Inv_SCO_genes_count$Number),]
+#### Running the model ####
+# Function for fitting the model
+fit_bb_tmb <- function(df) {
+  
+  n_samples <- nrow(df)
+  
+  # Cannot fit betabinomial with a single observation
+  if (n_samples < 2) {
+    return(tibble(
+      intercept = NA_real_, se = NA_real_, z = NA_real_,
+      p_value = NA_real_, fitted_p_inv = NA_real_,
+      null_p_inv     = plogis(mean(df$logit_p0)),
+      grad_max       = NA_real_,
+      total_reads    = sum(df$Total),
+      n_samples_used = n_samples,
+      converged      = FALSE,
+      flag           = "single_sample"
+    ))
+  }
+  
+  tryCatch({
+    fit <- glmmTMB(
+      cbind(Count_Inv, Count_X) ~ 1 + offset(logit_p0),
+      family = betabinomial(link = "logit"),
+      data   = df
+    )
+    
+    # Convergence checks
+    pdHess     <- isTRUE(fit$sdr$pdHess)
+    grad       <- tryCatch(max(abs(fit$sdr$gradient.fixed)), error = function(e) NA_real_)
+    grad_ok    <- isTRUE(grad < 0.001)
+    
+    s          <- summary(fit)$coefficients$cond
+    intercept  <- s["(Intercept)", "Estimate"]
+    se         <- s["(Intercept)", "Std. Error"]
+    z          <- s["(Intercept)", "z value"]
+    p_val      <- s["(Intercept)", "Pr(>|z|)"]
+    separation <- isTRUE(abs(intercept) > 10 | se > 10)
+    converged  <- pdHess & grad_ok & !separation
+    
+    flag <- case_when(
+      separation ~ "separation",
+      !pdHess    ~ "non_pd_hessian",
+      !grad_ok   ~ paste0("large_gradient:", round(grad, 4)),
+      TRUE       ~ "ok"
+    )
+    
+    mean_offset  <- mean(df$logit_p0)
+    fitted_p_inv <- plogis(mean_offset + intercept)
+    null_p_inv   <- plogis(mean_offset)
+    
+    tibble(
+      intercept, se, z, p_value = p_val,
+      fitted_p_inv, null_p_inv,
+      grad_max       = grad,
+      total_reads    = sum(df$Total),
+      n_samples_used = n_samples,
+      converged      = converged,
+      flag           = flag
+    )
+    
+  }, error = function(e) {
+    tibble(
+      intercept = NA_real_, se = NA_real_, z = NA_real_,
+      p_value = NA_real_, fitted_p_inv = NA_real_,
+      null_p_inv     = plogis(mean(df$logit_p0)),
+      grad_max       = NA_real_,
+      total_reads    = sum(df$Total),
+      n_samples_used = n_samples,
+      converged      = FALSE,
+      flag           = paste0("error: ", conditionMessage(e))
+    )
+  })
+}
 
-write.csv(X_Inv_SCO_genes_count, "outputs/allele_specific_gene_count_maternal_deposit.csv", row.names = FALSE)
-```
-\
-Now that I have all the length normalised gene counts for X genes and their ortholog on the Inv, I can carry out stats to see if they are differentially expressed.
-```
-gene_count_04hr <- X_Inv_SCO_genes_count
-nrow(gene_count_04hr) # 2703, same number as single orthologs between X and Inv
+### Running in chunks for memory 
+all_numbers <- unique(gene_counts_matdep_long_filt$Number)
+chunk_size  <- 400
+chunks      <- split(all_numbers, ceiling(seq_along(all_numbers) / chunk_size))
 
-gene_count_04hr_long <- gene_count_04hr %>%
-  pivot_longer(
-    cols = starts_with("female"),
-    names_to = "Sample_Group",
-    values_to = "Expression"
-  ) %>%
-  mutate(
-    Sample = str_extract(Sample_Group, "rep\\d+"),
-    Chrom = ifelse(str_detect(Sample_Group, "_X$"), "X", "Inv")
-  ) %>%
-  select(Number, Sample, Chrom, Expression, Inv_transcript, X_transcript)
+results_list <- vector("list", length(chunks))
 
-gene_count_04hr_long$Number <- as.factor(gene_count_04hr_long$Number)
-gene_count_04hr_long$logTPM <- log1p(gene_count_04hr_long$Expression)
+for (i in seq_along(chunks)) {
+  cat("Fitting chunk", i, "of", length(chunks), "\n")
+  
+  results_list[[i]] <- gene_counts_matdep_long_filt %>%
+    filter(Number %in% chunks[[i]]) %>%
+    group_by(Number) %>%
+    nest() %>%
+    mutate(fit = map(data, \(d) suppressMessages(suppressWarnings(fit_bb_tmb(d))))) %>%
+    unnest(fit) %>%
+    select(-data)
+  
+  gc()
+}
 
-model <- lmer(logTPM ~ -1 + Chrom:Number + (1 | Sample), data = gene_count_04hr_long)
-model_summary <- summary(model)
-# This estimates the average expression for each homolog on different genes. Significance in this case means that they are significantly different from 0 
+matdep_results_expressed <- bind_rows(results_list)
 
-# Now I am extracting the estimated mean for each homolog on each chromosome, to do pairwise comparisons
-emm <- emmeans(model, ~ Chrom:Number)
-contrast <- contrast(emm, method = "pairwise", by = "Number") |> summary(infer = TRUE, adjust = "BH")
+# Re-attach all-zero pairs from unfiltered table
+matdep_zero_pairs <- gene_counts_matdep_long %>%
+  group_by(Number) %>%
+  filter(all(Count_Inv == 0 & Count_X == 0)) %>%
+  summarise(logit_p0 = dplyr::first(logit_p0), .groups = "drop") %>%
+  transmute(
+    Number,
+    intercept      = NA_real_, se = NA_real_, z = NA_real_,
+    p_value        = NA_real_, fitted_p_inv = NA_real_,
+    null_p_inv     = plogis(logit_p0),
+    grad_max       = NA_real_,
+    total_reads    = 0L,
+    n_samples_used = 0L,
+    converged      = FALSE,
+    flag           = "all_zero"
+  )
 
-contrast_summary <- contrast |> 
-  as.data.frame() |> 
-  filter(str_detect(contrast, "Inv - X")) |> 
-  mutate(Number = str_extract(as.character(Number), "\\d+"),
-         logFC = estimate,
-         pval = p.value,
-         sig = case_when(
-           pval < 0.001 ~ "***",
-           pval < 0.01  ~ "**",
-           pval < 0.05  ~ "*",
-           TRUE         ~ "ns")) |> 
-  select(Number, logFC, pval, sig)
+matdep_results_all <- bind_rows(matdep_results_expressed, matdep_zero_pairs) %>%
+  arrange(Number)
 
-X_Inv_SCO_genes_count_summary <- X_Inv_SCO_genes_count[, c(1:3)]
+converged_pdr <- which(matdep_results_all$converged & !is.na(matdep_results_all$p_value))
+matdep_results_all$q_value <- NA_real_
+matdep_results_all$q_value[converged_pdr] <- p.adjust(
+  matdep_results_all$p_value[converged_pdr], method = "BH"
+)
 
-allele_specific_summary <- merge(X_Inv_SCO_genes_count_summary, contrast_summary, by = "Number")
-allele_specific_summary[order(allele_specific_summary$logFC, decreasing = T),]
-write.csv(allele_specific_summary, "outputs/allele_specific_exp_summary_04hrs.csv", row.names = FALSE)
-```
-\
-I add in information about the rate of molecular evolution for each gametolog, obtained in an earlier analysis. 
-```
-allele_specific_summary_readin <- read.csv("outputs/allele_specific_exp_summary_04hrs.csv")
-
-nrow(allele_specific_summary_readin) # 2703
-nrow(allele_specific_summary_readin[allele_specific_summary_readin$pval < 0.05, ]) # 1433
-
-allele_specific_summary_sig <- allele_specific_summary_readin |>
+matdep_results_all <- matdep_results_all %>%
   mutate(
     bias = case_when(
-      logFC > 0 & pval <= 0.05 ~ "Inv_biased",
-      logFC < 0 & pval <= 0.05 ~ "X_biased",
-      TRUE ~ "Unbiased"
+      flag == "all_zero"                                         ~ "unexpressed",
+      flag == "separation" & total_reads >= 10 & intercept > 0  ~ "Inv_biased",
+      flag == "separation" & total_reads >= 10 & intercept < 0  ~ "X_biased",
+      !converged                                                 ~ "model_failed",
+      q_value < 0.05 & intercept > 0                            ~ "Inv_biased",
+      q_value < 0.05 & intercept < 0                            ~ "X_biased",
+      q_value >= 0.05                                            ~ "unbiased"
     )
   )
-table(allele_specific_summary_sig$bias)
 
-## MA plot
+print(table(matdep_results_all$bias, useNA = "ifany"))
 
-mean_expr <- gene_count_04hr_long %>%
-  group_by(Number, Chrom) %>%
-  summarise(mean_TPM = mean(Expression), .groups = "drop") %>%
-  pivot_wider(names_from = Chrom, values_from = mean_TPM) %>%
-  mutate(Number = as.integer(as.character(Number)))
+matdep_results_all<-left_join(matdep_results_all, X_Inv_SCO_genes, by = "Number")
+matdep_results_all <- matdep_results_all[, c(1,15:16,2:14) ]
+nrow(matdep_results_all) #2703
+write.csv(matdep_results_all, "/outputs/matdep_allele_biased_exp_new.csv")
 
-allele_specific_summary_MA <- allele_specific_summary_sig %>%
-  left_join(mean_expr, by = "Number") %>%
+##### MA Plot #####
+# Compute M and A from the raw counts
+matdep_MA_cal <- gene_counts_matdep_long_filt %>%
+  group_by(Number) %>%
+  summarise(
+    # A: mean of log2 total counts (average expression level across samples)
+    mean_log_total = mean(log2(Total + 1)),
+    
+    # M: log2 fold change Inv/X, averaged across samples
+    # add pseudocount of 0.5 to avoid log(0)
+    mean_log2FC    = mean(log2((Count_Inv + 0.5) / (Count_X + 0.5))),
+    .groups = "drop"
+  )
+matdep_results_all <- matdep_results_all %>%
+  left_join(matdep_MA_cal, by = "Number")
+
+matdep_results_all <- matdep_results_all %>%
+  filter(bias != "unexpressed") %>%           # exclude all-zero pairs
   mutate(
-    A = log2((Inv + X) / 2 + 1),  # average expression, +1 to avoid log(0)
-    M = logFC                     # same as log2(Inv) - log2(X)
+    bias_plot = case_when(
+      bias == "Inv_biased"   ~ "Inv biased",
+      bias == "X_biased"     ~ "X biased",
+      bias == "unbiased"     ~ "Unbiased",
+      TRUE                   ~ "Model failed"
+    ),
+    bias_plot = factor(bias_plot, levels = c("Inv biased", "X biased", 
+                                             "Unbiased", "Model failed"))
   )
 
-MAplot_ASE_04hr <- ggplot(allele_specific_summary_MA, aes(x = A, y = M, color = bias)) +
-  geom_point(size = 2, alpha =0.6) +
-  scale_color_manual(name = "Expression", labels = c("Inversion-biased", "Unbiased", "X-biased"), values = c("maroon4", "gray50", "plum")) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(x = "Average expression (log2 TPM)",
-    y = "Allele-specific expression (log2 Inv - X)") +
+MAplot_ASE_matdep <- ggplot(data = matdep_results_all, aes(x = mean_log_total, y = mean_log2FC, colour = bias_plot)) +
+  geom_point(size = 2, alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "black") +
+  scale_colour_manual("Expression bias", values = c(
+    "Inv biased"   = "maroon4",
+    "X biased"     = "plum",
+    "Unbiased"     = "grey50",
+    "Model failed" = "grey85"
+  )) +
+  labs(
+    x = "Average expression (log2 counts)",
+    y = "Allele-specific expression (log2 Inv - X)"
+  ) +
   labs(title = "C - Allele-specific expression") + theme_bw() +
   theme(
     axis.line = element_blank(),
@@ -291,8 +392,8 @@ MAplot_ASE_04hr <- ggplot(allele_specific_summary_MA, aes(x = A, y = M, color = 
     legend.text=element_text(size=16),
     legend.spacing.y = unit(0.2, "cm"),
     legend.box.spacing = unit(0.2, "cm"))+
-  guides(color = guide_legend(override.aes = list(size = 5), nrow = 2))
-MAplot_ASE_04hr
+  guides(color = guide_legend(override.aes = list(size = 5), nrow = 2)) 
+MAplot_ASE_matdep
 ```
 \
 As with female tissue, I am  interested in whether differential deposition between gynogenic and androgenic females in X-linked genes is associated with biased deposition between X and X' gametologs in gynogenic females.
@@ -302,11 +403,26 @@ colnames(XpX_mapping_androvsgyno_04hrs_readin)[1] <- "X_transcript"
 head(XpX_mapping_androvsgyno_04hrs_readin)
 nrow(XpX_mapping_androvsgyno_04hrs_readin) #1761
 
-allele_exp_04hrs_readin <- read.csv("outputs/allele_specific_exp_summary_04hrs.csv")
+allele_exp_04hrs_readin <- read.csv("outputs/matdep_allele_biased_exp_new.csv")
+allele_exp_04hrs_readin$Number <- as.factor(allele_exp_04hrs_readin$Number)
+nrow(allele_exp_04hrs_readin) #2703
+allele_exp_04hrs_readin_MA_cal <- gene_counts_matdep_long_filt %>%
+  group_by(Number) %>%
+  summarise(
+    # A: mean of log2 total counts (average expression level across samples)
+    mean_log_total = mean(log2(Total + 1)),
+    
+    # M: log2 fold change Inv/X, averaged across samples
+    # add pseudocount of 0.5 to avoid log(0)
+    mean_log2FC    = mean(log2((Count_Inv + 0.5) / (Count_X + 0.5))),
+    .groups = "drop"
+  )
+allele_exp_04hrs_readin <- allele_exp_04hrs_readin %>%
+  left_join(allele_exp_04hrs_readin_MA_cal, by = "Number")
 nrow(allele_exp_04hrs_readin) #2703
 
 predict <- inner_join(XpX_mapping_androvsgyno_04hrs_readin, allele_exp_04hrs_readin, by = "X_transcript")
-predict <- predict[, c(1, 2, 6, 9, 10)]
+predict <- predict[, c(1, 2, 6, 24, 21)]
 colnames(predict) <- c("X_transcript", "GA_logFC", "GA_FDR", "XpX_logFC", "XpX_pval")
 
 predict_plot <- ggplot(data = predict, aes(x = GA_logFC, y = XpX_logFC)) + 
