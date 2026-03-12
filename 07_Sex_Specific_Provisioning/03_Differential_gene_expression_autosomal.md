@@ -1,8 +1,4 @@
 # Differential gene expression analysis of autosomal genes #
-
-
-\
-## Differential gene expression with edgeR ##
 Now that I have the read count of each gene in male and female embyros, I move to R for differential gene expression analysis using edgeR.
 \
 Required packages:
@@ -160,4 +156,5 @@ Finally, I take all the plots I have made for sex-specific provisioning and put 
 png(file="./outputs/maternal_deposit_new2.png", height = 900, width = 1200)
 ggarrange(pca_04hrs, volcano_XpX_04hrs, MAplot_ASE_04hr, predict_plot, pca_04, volcano_04, ncol = 3, nrow = 2)
 dev.off()
+
 ```
